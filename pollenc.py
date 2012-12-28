@@ -79,7 +79,6 @@ class Pollenc:
 
         jsonstr = '{\"environment\": \"%s\", \"tid\": \"%s\", \"aid\": \"%s\", \"reply\": \"%s\", \"type\": \"request\", \"service\": \"compile\", \"user\": {\"token\": \"%s\", \"id\": \"%s\", \"name\": \"%s\"}, \"project\": {\"id\": \"%s\", \"name\": \"%s\"}, \"content\" :  {\"source\":  \"%s\", \"filename\": \"%s\", \"partnum\": \"%s\" } }' % (args.environment, 0, 42, "dummy_replyTo", args.token, 12345678, None, 'myproj123', 'myproj', b64data, args.filename, args.mcu)
        
-        print("%s" % (jsonstr))
         self.write(jsonstr)
 
     def run(self):
@@ -92,7 +91,6 @@ class Pollenc:
 
         while True:
             r = self.read()
-            print("ejs got: %s" % (r))
             workobj   = json.loads(r)
             if workobj['type'] != 'response':
                 print ('%s' % (workobj['content']['content']))
@@ -103,13 +101,14 @@ class Pollenc:
 
         os.remove(self.workzip)
 
-        content   = workobj['content']
-        src       = content['content']
+        #content   = workobj['content']
+        #src       = content['content']
 
         #stoptime = datetime.datetime.now()
         #dur = stoptime - starttime
 
-        return src
+        #return src
+        return workobj['content']['content']
 
 def unzip (src):
     try:
@@ -143,11 +142,18 @@ if __name__ == "__main__":
 
     if args.include != None:
         for i in args.include:
-          #print ("include %s" % (i))
           pass
 
     r = Pollenc(args).run() 
+    print("len or b64 %i" % (len(r)))
+    #rl = len(r)
+    #rl3 = rl / 3
+    #rld = rl - (3 * rl3)
+    #print("rld %i" % (rld))
+    #for _ in xrange(rld):
+    #    print("rld appending %i" % (rld))
+    #    r += '='
     zipbytes = base64.b64decode(r)
     unzip(zipbytes)
-    print(r)
+    #print(r)
 

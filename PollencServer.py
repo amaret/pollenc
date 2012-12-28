@@ -8,6 +8,7 @@ import syslog
 import json
 import sys
 import traceback
+import base64
 
 rdis = ''
 ERROR_MSG = '{\"tid\": \"0\", \"aid\": \"0\", \"type\": \"response\", \"service\": \"compile\", \"user\": {\"id\": \"0\", \"name\": \"None\"}, \"project\": {\"id\": \"0\", \"name\": \"None\"}, \"content\" : {\"content\": \"None\", \"filename\": \"None\", \"error\": \"%s\" }}'
@@ -93,6 +94,14 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 dataobj = json.loads(response)
                 if dataobj['type'] != 'response':
                     continue
+                try:
+                    tobj = dataobj
+                    tbytes = tobj['content']['content']
+                    syslog.syslog(syslog.LOG_INFO, 'ejs testing sent data of len %i' % (len(tbytes)))
+                    base64.b64decode(tbytes)
+                except Exception, e:
+                    syslog.syslog(syslog.LOG_INFO, 'ejs error: %s' % (str(e)))
+
                 break
             return
         except:
