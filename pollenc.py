@@ -20,7 +20,8 @@ class Pollenc:
         self.workname = 'pollenc' + str(os.getpid()) + '_' + str(random.randint(1, 10000))
         self.workzip = '/tmp/' + self.workname + '_src.zip'
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(('localhost', 2323))
+        self.sock.connect((args.host, args.port))
+        print("ejs 2.1")
 
     #
     # begin comm
@@ -67,14 +68,19 @@ class Pollenc:
 
     def run(self):
 
+        print("ejs 2.2")
         #starttime = datetime.datetime.now()
 
         self.makezip(self.workzip)
+        print("ejs 2.3")
 
         self.sendzip()
+        print("ejs 2.4")
 
         while True:
+            print("ejs 2.4.1")
             r = self.read()
+            print("ejs 2.4.2")
             workobj   = json.loads(r)
             if workobj['type'] != 'response':
                 print ('%s' % (workobj['content']['content']))
@@ -107,7 +113,10 @@ def unzip (src):
 
 if __name__ == "__main__":
 
+    print("ejs 1")
     parser = argparse.ArgumentParser()
+    parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="channel.wind.io")
+    parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=2323, type=int)
     parser.add_argument('--cflags', dest='cflags', action='store', help='append cflags')
     parser.add_argument('--set-cflags', dest='setcflags', action='store', help='cflags')
     parser.add_argument('-m', '--mcu',  dest='mcu', action='store', help='mcu', required=True)
@@ -126,7 +135,9 @@ if __name__ == "__main__":
           #print ("include %s" % (i))
           pass
 
+    print("ejs 2")
     r = Pollenc(args).run() 
+    print("ejs 3")
     zipbytes = base64.b64decode(r)
     unzip(zipbytes)
     print(r)
