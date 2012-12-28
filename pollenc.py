@@ -25,7 +25,8 @@ class Pollenc:
     # begin comm
     #
     def write(self, msg):
-        self.sock.send(msg)
+        b = self.sock.send(msg)
+        print("ejs wrote %i" % b)
     
     def read(self):
         BUFSZ = 1024

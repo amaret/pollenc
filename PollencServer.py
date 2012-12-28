@@ -50,10 +50,12 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             #data = self.request.recv(32768)
             while True:
                 b = self.request.recv(BUFSZ)
+                if b == None or len(b) == 0:
+                    break
                 data += b
                 print("ejs len b: %i" % len(b))
-                if len(b) < BUFSZ:
-                    break
+                #if len(b) < BUFSZ:
+                #    break
 
             dataobj = ''
             try:
