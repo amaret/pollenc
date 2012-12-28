@@ -53,13 +53,15 @@ class Pollenc:
     # end comm
     #
 
+    # bug!  why does this zip not create error when bogus
+    # bug!  test by removing remove code
     # presumes path is the parent dir to the 'code' dir
     def zipdir(self, path, zip):
-        print('path %s' % (path))
+        print('ejs path %s' % (path))
         for root, dirs, files in os.walk(path):
-            print('root %s' % (root))
+            print('ejs root %s' % (root))
             for file in files:
-                print('file %s' % (file))
+                print('ejs file %s' % (file))
                 if not file.endswith('.zip'):
                     zip.write(os.path.join(root, file))
 
