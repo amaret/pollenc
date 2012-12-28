@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# Copyright 2012, 2013 Amaret Inc. All rights reserved.
+
 import SocketServer
 import StringIO
 import threading
