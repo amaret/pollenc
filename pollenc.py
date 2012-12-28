@@ -25,7 +25,9 @@ class Pollenc:
     # begin comm
     #
     def write(self, msg):
-        b = self.sock.send(msg)
+        hmsg = "%i\n%s" % (len(msg), msg)
+        print("ejs writing %i" % len(msg))
+        b = self.sock.send(hmsg)
         print("ejs wrote %i" % b)
     
     def read(self):
