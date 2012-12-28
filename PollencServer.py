@@ -56,7 +56,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             BUFSZ = 1024
             data = ''
             while len(data) < hlen:
-                b = self.request.recv(BUFSZ)
+                sz = BUFSZ
+                rem = hlen - len(data)
+                if rem < BUFSZ:
+                    sz = rem
+                b = self.request.recv(sz)
                 data += b
 
             dataobj = ''
@@ -76,12 +80,6 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 return
 
             syslog.syslog(syslog.LOG_INFO, 'pollenc request handler invoked for token %s' % (token))
-	        #todo: len headers and a watchdog
-            #while True:
-            #    chunk = self.request.recv(1024)
-            #    if not chunk:
-            #        break
-            #    data += chunk
             cur_thread = threading.currentThread()
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["name"])
             dataobj["reply"] = responseQueue
