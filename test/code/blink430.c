@@ -17,7 +17,8 @@ int main(void) {
     // toggle bit 0 of P1
     P1OUT ^= 0x01;
     // delay for a while
-    for (i = 0; i < 0x6000; i++);
+    //for (i = 0; i < 0x6000; i++); // slow
+    for (i = 0; i < 0x0F00; i++);   // fast
   }
 }
 

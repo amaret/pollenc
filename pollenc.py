@@ -83,8 +83,6 @@ class Pollenc:
 
     def run(self):
 
-        #starttime = datetime.datetime.now()
-
         self.makezip(self.workzip)
 
         self.sendzip()
@@ -101,20 +99,12 @@ class Pollenc:
 
         os.remove(self.workzip)
 
-        #content   = workobj['content']
-        #src       = content['content']
-
-        #stoptime = datetime.datetime.now()
-        #dur = stoptime - starttime
-
-        #return src
         return workobj['content']['content']
 
 def unzip (src):
     try:
-        byte_s = base64.b64decode(src)
         binfile = open('a.zip', 'wb')
-        binfile.write(byte_s)
+        binfile.write(src)
         binfile.close()
         z = zipfile.ZipFile('a.zip')
         z.extractall('.')
@@ -144,16 +134,7 @@ if __name__ == "__main__":
         for i in args.include:
           pass
 
-    r = Pollenc(args).run() 
-    print("len or b64 %i" % (len(r)))
-    #rl = len(r)
-    #rl3 = rl / 3
-    #rld = rl - (3 * rl3)
-    #print("rld %i" % (rld))
-    #for _ in xrange(rld):
-    #    print("rld appending %i" % (rld))
-    #    r += '='
-    zipbytes = base64.b64decode(r)
+    b64 = Pollenc(args).run() 
+    zipbytes = base64.b64decode(b64)
     unzip(zipbytes)
-    #print(r)
 
