@@ -1,67 +1,94 @@
-#!/usr/bin/python2
-import sys
+#!/usr/bin/env python
 import SocketServer
-import syslog
-import socket
 import threading
+import redis
+import argparse
+import syslog
+import json
+
+rdis = ''
+ERROR_MSG = '{\"tid\": \"0\", \"aid\": \"0\", \"type\": \"response\", \"service\": \"compile\", \"user\": {\"id\": \"0\", \"name\": \"None\"}, \"project\": {\"id\": \"0\", \"name\": \"None\"}, \"content\" : {\"content\": \"None\", \"filename\": \"None\", \"error\": \"%s\" }}'
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
+    def getQName(self):
+        return 'CLC_MSP430_1_0'
+        #return 'CLC_ARDUINO_1_0'
+
+    def write(self, dstr):
+	    rdis.lpush(self.getQName(), dstr);
+    
+    def read(self, replyQueue):
+        response = rdis.brpop(keys=[replyQueue], timeout=30);
+        if ( not response or not len(response) == 2) :
+            raise Exception('bad response from clc: %s' % (response))
+        return response[1]
+
+    def validateToken(self, token):
+        #todo:
+        return token == 'rustyisacowboy'
+    
     def handle(self):
-        # Echo the back to the client
-        data = self.request.recv(1024)
+        data = ''
+        data = self.request.recv(32768)
+
+        dataobj = json.loads(data)
+        token = dataobj["user"]["token"]
+        if not self.validateToken(token):
+            syslog.syslog(syslog.LOG_INFO, 'pollenc rejecting token %s' % (token))
+            emsg =  ERROR_MSG % ('bad token')
+            self.request.send(emsg)
+            return
+
+        syslog.syslog(syslog.LOG_INFO, 'pollenc request handler invoked for token %s' % (token))
+	    #todo: len headers and a watchdog
+        #while True:
+        #    chunk = self.request.recv(1024)
+        #    if not chunk:
+        #        break
+        #    data += chunk
         cur_thread = threading.currentThread()
-        response = '%s: %s' % (cur_thread.getName(), data)
-        self.request.send(response)
+        responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["name"])
+        dataobj["reply"] = responseQueue
+        self.write(json.dumps(dataobj))
+
+        while True:
+            response = self.read(responseQueue)
+            self.request.send(response)
+            dataobj = json.loads(response)
+            if dataobj['type'] != 'response':
+                continue
+            break
         return
+
 
 class PollencServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 	pass
 
-class PollencServerx(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    
-    def __init__(self, server_address, handler_class=PollencRequestHandler):
-        SocketServer.TCPServer.__init__(self, server_address, handler_class)
-        return
-
-    def server_activate(self):
-        SocketServer.TCPServer.server_activate(self)
-        return
-
-    def serve_forever(self):
-	print 'Server loop running'
-        while True:
-            self.handle_request()
-        return
-
-    def handle_request(self):
-        return SocketServer.TCPServer.handle_request(self)
-
-    def verify_request(self, request, client_address):
-        return SocketServer.TCPServer.verify_request(self, request, client_address)
-
-    def process_request(self, request, client_address):
-        return SocketServer.TCPServer.process_request(self, request, client_address)
-
-    def server_close(self):
-        return SocketServer.TCPServer.server_close(self)
-
-    def finish_request(self, request, client_address):
-        return SocketServer.TCPServer.finish_request(self, request, client_address)
-
-    def close_request(self, request_address):
-        return SocketServer.TCPServer.close_request(self, request_address)
 
 if __name__ == '__main__':
 
-    print 'Server starting...'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--host', dest='host', action='store', help='redis server hostname')
+    parser.add_argument('-p', '--port',  dest='port', action='store', help='redis server port')
+        
+    args = parser.parse_args()
+
+    if args.host == None:
+        args.host = "localhost"
+
+    if args.port == None:
+        args.port = 6379
+
+    syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (args.host, args.port))
+    rdis = redis.Redis(host=args.host, port=args.port)
+    
     address = ('localhost', 2323)
     server = PollencServer(address, PollencRequestHandler)
-    ip, port = server.server_address # find out what port we were given
 
     server.serve_forever()
 
-    print '... Server stoping'
-    # Clean up
+    syslog.syslog(syslog.LOG_INFO, 'service stopping')
+
     server.socket.close()
 
