@@ -69,19 +69,19 @@ class PollencServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--host', dest='host', action='store', help='redis server hostname')
-    parser.add_argument('-p', '--port',  dest='port', action='store', help='redis server port')
+    parser.add_argument('--rdishost', dest='rdishost', action='store', help='redis server hostname')
+    parser.add_argument('--rdisport',  dest='rdisport', action='store', help='redis server port', type=int)
         
     args = parser.parse_args()
 
-    if args.host == None:
-        args.host = "localhost"
+    if args.rdishost == None:
+        args.rdishost = "localhost"
 
-    if args.port == None:
-        args.port = 6379
+    if args.rdisport == None:
+        args.rdisport = 6379
 
-    syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (args.host, args.port))
-    rdis = redis.Redis(host=args.host, port=args.port)
+    syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (args.rdishost, args.rdisport))
+    rdis = redis.Redis(host=args.rdishost, port=args.rdisport)
     
     address = ('localhost', 2323)
     server = PollencServer(address, PollencRequestHandler)
