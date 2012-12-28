@@ -1,3 +1,3 @@
 #!/bin/sh
-cp PollencService /etc/init/
+cp PollencService.conf /etc/init/
 
