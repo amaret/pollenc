@@ -26,22 +26,23 @@ class Pollenc:
     #
     def write(self, msg):
         hmsg = "%i\n%s" % (len(msg), msg)
-        print("ejs writing %i" % len(msg))
-        b = self.sock.send(hmsg)
-        print("ejs wrote %i" % b)
+        self.sock.send(hmsg)
     
     def read(self):
-        BUFSZ = 1024
-        #BUFSZ = 2048
-        #r = self.sock.recv(32768)
-        r = ''
+
+        hlen = 0
+        hlenRec = ''
         while True:
-            #b = self.sock.recv(BUFSZ)
+            b = self.sock.recv(1)
+            if b == '\n':
+                hlen = int(hlenRec)
+                break
+            hlenRec += b
+        BUFSZ = 1024
+        r = ''
+        while len(r) < hlen:
             b = self.sock.recv(BUFSZ)
             r += b
-            print("ejs len b: %i" % len(b))
-            if len(b) < BUFSZ:
-                break
         return r
     #
     # end comm

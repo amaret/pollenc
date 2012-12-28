@@ -50,18 +50,14 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 b = self.request.recv(1)
                 if b == '\n':
                     hlen = int(hlenRec)
-                    print("ejs len hdr: %i" % (hlen))
                     break
                 hlenRec += b
 
             BUFSZ = 1024
             data = ''
-            while True:
+            while len(data) < hlen:
                 b = self.request.recv(BUFSZ)
                 data += b
-                print("ejs len b: %i" % len(b))
-                if len(data) >= hlen:
-                    break
 
             dataobj = ''
             try:
@@ -75,7 +71,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             if not self.validateToken(token):
                 syslog.syslog(syslog.LOG_WARNING, 'pollenc rejecting token %s' % (token))
                 emsg =  ERROR_MSG % ('bad token')
-                self.request.send(emsg)
+                hmsg = "%i\n%s" % (len(emsg), emsg)
+                self.request.send(hmsg)
                 return
 
             syslog.syslog(syslog.LOG_INFO, 'pollenc request handler invoked for token %s' % (token))
@@ -93,7 +90,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             while True:
                 response = self.read(responseQueue)
-                self.request.send(response)
+                hmsg = "%i\n%s" % (len(response), response)
+                self.request.send(hmsg)
                 dataobj = json.loads(response)
                 if dataobj['type'] != 'response':
                     continue
