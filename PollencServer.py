@@ -44,8 +44,16 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     
     def handle(self):
         try:
+            BUFSZ = 1024
+            #BUFSZ = 2048
             data = ''
-            data = self.request.recv(32768)
+            #data = self.request.recv(32768)
+            while True:
+                b = self.request.recv(BUFSZ)
+                data += b
+                print("ejs len b: %i" % len(b))
+                if len(b) < BUFSZ:
+                    break
 
             dataobj = ''
             try:

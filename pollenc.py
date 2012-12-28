@@ -2,14 +2,12 @@
 
 # Copyright 2012 Amaret Inc. All rights reserved.
 
-import sys
 import argparse
 import json
 import zipfile
 import os
 import base64
 import random
-import datetime
 import socket
 
 
@@ -30,7 +28,17 @@ class Pollenc:
         self.sock.send(msg)
     
     def read(self):
-        r = self.sock.recv(32768)
+        BUFSZ = 1024
+        #BUFSZ = 2048
+        #r = self.sock.recv(32768)
+        r = ''
+        while True:
+            #b = self.sock.recv(BUFSZ)
+            b = self.sock.recv(BUFSZ)
+            r += b
+            print("ejs len b: %i" % len(b))
+            if len(b) < BUFSZ:
+                break
         return r
     #
     # end comm
@@ -63,7 +71,8 @@ class Pollenc:
         b64data = base64.b64encode(data)
 
         jsonstr = '{\"environment\": \"%s\", \"tid\": \"%s\", \"aid\": \"%s\", \"reply\": \"%s\", \"type\": \"request\", \"service\": \"compile\", \"user\": {\"token\": \"%s\", \"id\": \"%s\", \"name\": \"%s\"}, \"project\": {\"id\": \"%s\", \"name\": \"%s\"}, \"content\" :  {\"source\":  \"%s\", \"filename\": \"%s\", \"partnum\": \"%s\" } }' % (args.environment, 0, 42, "dummy_replyTo", args.token, 12345678, None, 'myproj123', 'myproj', b64data, args.filename, args.mcu)
-        
+       
+        print("%s" % (jsonstr))
         self.write(jsonstr)
 
     def run(self):
