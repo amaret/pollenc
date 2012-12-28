@@ -93,6 +93,17 @@ class Pollenc:
 
         return src
 
+def unzip (src):
+    try:
+        byte_s = base64.b64decode(src)
+        binfile = open('a.zip', 'wb')
+        binfile.write(byte_s)
+        binfile.close()
+        z = zipfile.ZipFile('a.zip')
+        z.extractall('.')
+    except Exception, e:
+        print("argh! %s" % (e))
+
 
 if __name__ == "__main__":
 
@@ -116,5 +127,7 @@ if __name__ == "__main__":
           pass
 
     r = Pollenc(args).run() 
+    zipbytes = base64.b64decode(r)
+    unzip(zipbytes)
     print(r)
 

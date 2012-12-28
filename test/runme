@@ -1,1 +1,1 @@
-../pollenc.py -p msp430g2452 -f blink430.c -t abcdef
+../pollenc.py -e msp430 --mcu msp430g2452 -t rustyisacowboy -i one -i two blink430.c
