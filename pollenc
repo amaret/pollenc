@@ -51,6 +51,7 @@ class Pollenc:
                 hlen = int(hlenRec)
                 break
             hlenRec += b
+        
         BUFSZ = 1024
         r = ''
         while len(r) < hlen:

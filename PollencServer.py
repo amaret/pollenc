@@ -13,6 +13,8 @@ import sys
 import traceback
 import base64
 
+MAX_MSG_SIZE = 100000
+
 rdis = None
 args = ''
 
@@ -58,6 +60,15 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                     hlen = int(hlenRec)
                     break
                 hlenRec += b
+                if len(hlenRec) > 10:
+                    syslog.syslog(syslog.LOG_WARNING, 'rejecting bad header: %s' % (hlenRec))
+                    self.request.send('invalid header: %s\n' % (hlenRec))
+                    return
+            
+            if hlen > MAX_MSG_SIZE or hlen == 0:
+                syslog.syslog(syslog.LOG_WARNING, 'rejecting bad msg size header: %s' % (hlen))
+                self.request.send('invalid msg size: %i\n' % (hlen))
+                return
 
             BUFSZ = 1024
             data = ''
@@ -74,12 +85,12 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 dataobj = json.loads(data)
             except ValueError, e:
                 self.request.send('%s' % (str(e)))
-                syslog.syslog(syslog.LOG_WARNING, 'pollenc rejecting bad msg: %s' % (e))
+                syslog.syslog(syslog.LOG_WARNING, 'rejecting bad msg: %s' % (e))
                 return
 
             token = dataobj["user"]["token"]
             if not self.validateToken(token):
-                syslog.syslog(syslog.LOG_WARNING, 'pollenc rejecting token %s' % (token))
+                syslog.syslog(syslog.LOG_WARNING, 'rejecting token %s' % (token))
                 emsg =  ERROR_MSG % ('bad token')
                 hmsg = "%i\n%s" % (len(emsg), emsg)
                 self.request.send(hmsg)

@@ -2,7 +2,7 @@
 
 #include <msp430g2452.h>
 
-//int main(void) {
+int main(void) {
   volatile int i;
 
   // stop watchdog timer
