@@ -105,7 +105,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             syslog.syslog(syslog.LOG_INFO, 'pollenc request handler invoked for token %s' % (token))
             cur_thread = threading.currentThread()
-            responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["name"])
+            responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["token"])
             dataobj["reply"] = responseQueue
             qname = self.getQName(dataobj['buildenv']);
             self.write(qname, json.dumps(dataobj))
