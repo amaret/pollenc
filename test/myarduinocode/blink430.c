@@ -2,7 +2,7 @@
 
 #include <msp430g2452.h>
 
-//int main(void) {
+int main(void) {
   volatile int i;
 
   // stop watchdog timer
@@ -17,8 +17,7 @@
     // toggle bit 0 of P1
     P1OUT ^= 0x01;
     // delay for a while
-    for (i = 0; i < 0x5000; i++); // slow
-    //for (i = 0; i < 0x0F01; i++);   // fast
+    for (i = 0; i < 0x6000; i++);
   }
 }
 

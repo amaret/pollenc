@@ -65,6 +65,19 @@ class Pollenc:
     # end comm
     #
 
+    def filenameOk(self, file):
+        if file.endswith('.zip'):
+            return False
+        if file.endswith('stderr'):
+            return False
+        if file.endswith('stdout'):
+            return False
+        if file.endswith('.out'):
+            return False
+        if file.endswith('.hex'):
+            return False
+        return True
+
     # bug!  why does this zip not create error when bogus
     # bug!  test by removing remove code
     # presumes path is the parent dir to the 'code' dir
@@ -74,7 +87,8 @@ class Pollenc:
         #for root, dirs, files in os.walk(path):
         for root, dirs, files in os.walk('.'):
             for file in files:
-                if not file.endswith('.zip'):
+                if self.filenameOk(file):
+                    print('adding %s' % (file))
                     zip.write(os.path.join(root, file))
         os.chdir(origpath)
 
