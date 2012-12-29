@@ -1,1 +1,1 @@
-../pollenc.py -e msp430 --mcu msp430g2452 -t rustyisacowboy -i one -i two blink430.c
+../pollenc --build-c --buildenv msp430 --mcu msp430g2452 -t rustyisacowboy blink430_fast.c -p fet --host localhost -i mycode -i myothercode

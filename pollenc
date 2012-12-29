@@ -3,6 +3,7 @@
 # Copyright 2012, 2013 Amaret Inc. All rights reserved.
 
 import subprocess
+import shutil
 import shlex
 import argparse
 import json
@@ -12,6 +13,17 @@ import base64
 import random
 import socket
 
+def rmfile(f):
+    try:
+        os.remove(f)
+    except:
+        pass
+
+def rmdir(d):
+    try:
+        shutil.rmtree(d)
+    except:
+        pass
 
 class Pollenc:
 
@@ -57,18 +69,19 @@ class Pollenc:
     # bug!  test by removing remove code
     # presumes path is the parent dir to the 'code' dir
     def zipdir(self, path, zip):
-        print('ejs path %s' % (path))
-        for root, dirs, files in os.walk(path):
-            print('ejs root %s' % (root))
+        origpath = os.getcwd()
+        os.chdir(path)
+        #for root, dirs, files in os.walk(path):
+        for root, dirs, files in os.walk('.'):
             for file in files:
-                print('ejs file %s' % (file))
                 if not file.endswith('.zip'):
                     zip.write(os.path.join(root, file))
+        os.chdir(origpath)
 
 
     def makeCZip(self):
 
-        #ptmp = '.'
+        zip = zipfile.ZipFile(self.workzip, 'w')
         ptmp = []
         if self.args.includes == None:
             ptmp.append('.')
@@ -76,17 +89,18 @@ class Pollenc:
             for d in self.args.includes:
                 ptmp.append(d)
 
-        zip = zipfile.ZipFile(self.workzip, 'w')
-        print('dir %s' % (ptmp[0]))
-        self.zipdir(ptmp[0], zip)
+        tmpdir = '/tmp/' + self.workname
+        for src in ptmp:
+            rmdir(tmpdir)
+            os.mkdir(tmpdir)
+            shutil.copytree(src,tmpdir + '/code/')
+            self.zipdir(tmpdir, zip)
+            rmdir(tmpdir)
         zip.close()
 
     def makezip(self):
        
-        try:
-            os.remove(self.workzip)
-        except:
-            pass
+        rmfile(self.workzip)
 
         if self.args.buildc:
             self.makeCZip()
@@ -127,7 +141,7 @@ class Pollenc:
                 print ('error! %s' % (workobj['content']['error']))
             break
         
-        os.remove(self.workzip)
+        rmfile(self.workzip)
 
         b64 = workobj['content']['content']
         zipbytes = base64.b64decode(b64)
@@ -156,7 +170,7 @@ def unzip (src):
         binfile.close()
         z = zipfile.ZipFile(tmpzip)
         z.extractall('.')
-        os.remove(tmpzip)
+        rmfile(tmpzip)
     except Exception, e:
         print("argh! %s" % (e))
 
