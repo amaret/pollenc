@@ -150,7 +150,7 @@ class Pollenc:
 
     def loadHex(self):
         
-        cmd = '/home/esweeney/git/amaret/downloader/Wind/downloader'
+        cmd = 'downloader'
         if self.args.mcu != None:
             cmd += ' -t ' + self.args.mcu
         if self.args.baud != None:
