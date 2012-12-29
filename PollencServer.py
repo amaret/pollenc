@@ -13,7 +13,7 @@ import sys
 import traceback
 import base64
 
-MAX_MSG_SIZE = 100000
+MAX_MSG_SIZE = 1000000
 
 rdis = None
 args = ''
@@ -42,6 +42,12 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         if ( not response or not len(response) == 2) :
             raise Exception('bad response from clc: %s' % (response))
         return response[1]
+
+    def handleError(self, etxt):
+        syslog.syslog(syslog.LOG_ERR, etxt)
+        emsg =  ERROR_MSG % (etxt)
+        hmsg = "%i\n%s" % (len(emsg), emsg)
+        self.request.send(hmsg)
     #
     # end redis usage
     #
@@ -52,6 +58,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     
     def handle(self):
         try:
+            syslog.syslog(syslog.LOG_DEBUG, 'handler invoked')
             hlen = 0
             hlenRec = ''
             while True:
@@ -64,6 +71,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                     syslog.syslog(syslog.LOG_WARNING, 'rejecting bad header: %s' % (hlenRec))
                     self.request.send('invalid header: %s\n' % (hlenRec))
                     return
+            
+            syslog.syslog(syslog.LOG_DEBUG, 'msg header len: %i' % (hlen))
             
             if hlen > MAX_MSG_SIZE or hlen == 0:
                 syslog.syslog(syslog.LOG_WARNING, 'rejecting bad msg size header: %s' % (hlen))
@@ -78,22 +87,20 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 if rem < BUFSZ:
                     sz = rem
                 b = self.request.recv(sz)
+                syslog.syslog(syslog.LOG_DEBUG, 'read %i bytes' % (len(b)))
                 data += b
 
             dataobj = ''
             try:
                 dataobj = json.loads(data)
             except ValueError, e:
-                self.request.send('%s' % (str(e)))
-                syslog.syslog(syslog.LOG_WARNING, 'rejecting bad msg: %s' % (e))
+                self.handleError(str(e))
                 return
 
             token = dataobj["user"]["token"]
             if not self.validateToken(token):
-                syslog.syslog(syslog.LOG_WARNING, 'rejecting token %s' % (token))
-                emsg =  ERROR_MSG % ('bad token')
-                hmsg = "%i\n%s" % (len(emsg), emsg)
-                self.request.send(hmsg)
+                etxt = 'rejecting token %s' % (token)
+                self.handleError(etxt)
                 return
 
             syslog.syslog(syslog.LOG_INFO, 'pollenc request handler invoked for token %s' % (token))
@@ -110,19 +117,20 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 dataobj = json.loads(response)
                 if dataobj['type'] != 'response':
                     continue
-                try:
-                    tobj = dataobj
-                    tbytes = tobj['content']['content']
-                    base64.b64decode(tbytes)
-                except Exception, e:
-                    syslog.syslog(syslog.LOG_INFO, 'error: %s' % (str(e)))
+                tobj = dataobj
+                tbytes = tobj['content']['content']
+                base64.b64decode(tbytes)
 
                 break
-            return
+        except Exception, e:
+            self.handleError(str(e))
         except:
             e = sys.exc_info()[0]
             self.logexception(1)
-            syslog.syslog(syslog.LOG_ERR, 'pollenc exception %s (%s)' % (e.__class__, e))
+            etxt = 'pollenc exception %s (%s)' % (e.__class__, e)
+            self.handleError(etxt)
+        
+        return
 
     def logexception(self, includetraceback = 0):
         exctype, exception, exctraceback = sys.exc_info()

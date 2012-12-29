@@ -85,12 +85,14 @@ class Pollenc:
     def zipdir(self, path, zip):
         origpath = os.getcwd()
         os.chdir(path)
+        namelist = ''
         #for root, dirs, files in os.walk(path):
         for root, dirs, files in os.walk('.'):
             for file in files:
                 if self.filenameOk(file):
-                    print('adding %s' % (file))
+                    namelist += file + ' '
                     zip.write(os.path.join(root, file))
+        print('preparing %s' % (namelist))
         os.chdir(origpath)
 
 
@@ -153,6 +155,7 @@ class Pollenc:
                 continue
             if workobj['content']['error'] != 'None':
                 print ('error! %s' % (workobj['content']['error']))
+                return
             break
         
         rmfile(self.workzip)
