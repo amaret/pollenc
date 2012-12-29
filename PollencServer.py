@@ -23,14 +23,14 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     #
     # begin redis usage
     #
-    def getQName(self, e):
-        if e == 'msp430_gcc':
+    def getQName(self, buildenv):
+        if buildenv == 'msp430_gcc':
             return 'CLC_MSP430_1_0'
-        if e == 'arduino_gcc':
+        if buildenv == 'arduino_gcc':
             return 'CLC_ARDUINO_1_0'
-        if e == 'pollen_gcc':
+        if buildenv == 'pollen_gcc':
             return 'CLC_POLLEN_GCC_1_0'
-        raise Exception('unsupported envoronment: %s' % (e))
+        raise Exception('unsupported envoronment: %s' % (buildenv))
 
     def write(self, qname, dstr):
 	    rdis.lpush(qname, dstr);
@@ -89,7 +89,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             cur_thread = threading.currentThread()
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["name"])
             dataobj["reply"] = responseQueue
-            qname = self.getQName(dataobj['environment']);
+            qname = self.getQName(dataobj['buildenv']);
             self.write(qname, json.dumps(dataobj))
 
             while True:
