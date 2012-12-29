@@ -13,7 +13,9 @@ import sys
 import traceback
 import base64
 
-rdis = ''
+rdis = None
+args = ''
+
 ERROR_MSG = '{\"tid\": \"0\", \"aid\": \"0\", \"type\": \"response\", \"service\": \"compile\", \"user\": {\"id\": \"0\", \"name\": \"None\"}, \"project\": {\"id\": \"0\", \"name\": \"None\"}, \"content\" : {\"content\": \"None\", \"filename\": \"None\", \"error\": \"%s\" }}'
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
@@ -22,12 +24,12 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     # begin redis usage
     #
     def getQName(self, e):
-        if e == 'msp430':
+        if e == 'msp430_gcc':
             return 'CLC_MSP430_1_0'
-        if e == 'arduino':
+        if e == 'arduino_gcc':
             return 'CLC_ARDUINO_1_0'
-        if e == 'pollen':
-            return 'CLC_POLLEN_1_0'
+        if e == 'pollen_gcc':
+            return 'CLC_POLLEN_GCC_1_0'
         raise Exception('unsupported envoronment: %s' % (e))
 
     def write(self, qname, dstr):
@@ -100,10 +102,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 try:
                     tobj = dataobj
                     tbytes = tobj['content']['content']
-                    syslog.syslog(syslog.LOG_INFO, 'ejs testing sent data of len %i' % (len(tbytes)))
                     base64.b64decode(tbytes)
                 except Exception, e:
-                    syslog.syslog(syslog.LOG_INFO, 'ejs error: %s' % (str(e)))
+                    syslog.syslog(syslog.LOG_INFO, 'error: %s' % (str(e)))
 
                 break
             return

@@ -1,4 +1,4 @@
 export PATH=$PATH:$HOME/git/amaret/downloader/dnldr
 
-../pollenc --build-c --buildenv msp430 --mcu msp430g2452 -t rustyisacowboy blink430_fast.c -p fet --host localhost -i mycode -i myothercode
+../pollenc --build-c --buildenv msp430_gcc --mcu msp430g2452 -t rustyisacowboy blink430_fast.c --host localhost -i mycode -i myothercode -l fet
 

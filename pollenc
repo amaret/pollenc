@@ -98,6 +98,9 @@ class Pollenc:
             rmdir(tmpdir)
         zip.close()
 
+    def makePollenZip(self):
+        raise Exception('not implemented')
+
     def makezip(self):
        
         rmfile(self.workzip)
@@ -106,9 +109,6 @@ class Pollenc:
             self.makeCZip()
         else:
             self.makePollenZip()
-
-    def makePollenZip(self):
-        raise Exception('not implemented')
 
     def sendzip(self):
         file = open(self.workzip, "rb")
@@ -128,7 +128,6 @@ class Pollenc:
     def run(self):
 
         self.makezip()
-
         self.sendzip()
 
         while True:
@@ -146,17 +145,20 @@ class Pollenc:
         b64 = workobj['content']['content']
         zipbytes = base64.b64decode(b64)
         unzip(zipbytes)
-        self.loadHex()
+        if self.args.loader != None:
+            self.loadHex()
 
     def loadHex(self):
         
         cmd = 'downloader'
         if self.args.mcu != None:
             cmd += ' -t ' + self.args.mcu
+        if self.args.serial != None:
+            cmd += ' -s ' + self.args.serial
         if self.args.baud != None:
             cmd += ' -b ' + self.args.baud
-        if self.args.programmer != None:
-            cmd += ' -p ' + self.args.programmer
+        if self.args.loader != None:
+            cmd += ' -p ' + self.args.loader
         cmd += ' -c flash:w:a.out.hex'
 
         pipeCmd(cmd)
@@ -196,7 +198,6 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--loader', dest='loader', action='store', help='loader')
     parser.add_argument('-b', '--baud', dest='baud', action='store', help='baud')
     parser.add_argument('-s', '--serial', dest='serial', action='store', help='serial port')
-    parser.add_argument('-p', '--programmer', dest='programmer', action='store', help='programmer')
     parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="channel.wind.io")
     parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=2323, type=int)
     parser.add_argument('--cflags', dest='cflags', action='store', help='append cflags')
