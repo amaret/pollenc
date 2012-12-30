@@ -6,7 +6,7 @@ package blink.avr
   The pin driver is specific to the ATmega328p mcu. (e.g. arduino)
 ------------------------------------------------------------------------------!
 
-module Blink0 {
+module FastBlink0 {
 
   +{ #include <avr/io.h> }+
 
@@ -16,12 +16,6 @@ module Blink0 {
     
     while(true) {
       togglePin()
-      delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
       delaySome()
     }
   }

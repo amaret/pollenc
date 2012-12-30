@@ -236,7 +236,11 @@ class Pollenc:
         if self.args.buildpollen:
             n = self.getOutRootName() + '-prog.hex'
             return n
-        return 'out/a.out.hex'
+        n = self.getOutDir() + '/' + self.getProgRootName() + '.out.hex'
+        return n
+
+    def getProgRootName(self):
+        return os.path.splitext(self.getFilename())[0]
 
     def getOutName(self):
         return self.getOutRootName() + '-prog.out'
