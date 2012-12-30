@@ -178,6 +178,15 @@ class Pollenc:
         if self.args.buildpollen:
             jsonobj['content']['bundlenames'] = self.args.includes
         jsonobj['content']['getbuild'] = self.args.getbuild
+        jsonobj['content']['translateonly'] = self.args.translateonly
+        if self.args.cflags != None:
+            jsonobj['content']['cflags'] = self.args.cflags
+        if self.args.setcflags != None:
+            jsonobj['content']['setcflags'] = self.args.setcflags
+        if self.args.ldflags != None:
+            jsonobj['content']['ldflags'] = self.args.ldflags
+        if self.args.setldflags != None:
+            jsonobj['content']['setldflags'] = self.args.setldflags
         
         jsonstr = json.dumps(jsonobj)
         print(jsonstr)
@@ -301,6 +310,11 @@ if __name__ == "__main__":
     parser.add_argument('--build-pollen', 
             dest='buildpollen', action='store_true', help='build pollen')
 
+    parser.add_argument('--translate-only', 
+            dest='translateonly', 
+            action='store_true', 
+            help='no compile, return pollen generate files')
+
     parser.add_argument('--get-build', 
             dest='getbuild', action='store_true', help='return all build files')
 
@@ -326,10 +340,10 @@ if __name__ == "__main__":
             dest='setcflags', action='store', help='cflags')
 
     parser.add_argument('--ldflags', 
-            dest='cflags', action='store', help='append ldflags')
+            dest='ldflags', action='store', help='append ldflags')
 
     parser.add_argument('--set-ldflags', 
-            dest='setcflags', action='store', help='ldflags')
+            dest='setldflags', action='store', help='ldflags')
 
     parser.add_argument('-m', '--mcu',  
             dest='mcu', action='store', help='mcu', required=True)
@@ -349,9 +363,9 @@ if __name__ == "__main__":
     parser.add_argument('filename', nargs='?')
 
     #todo:
-    # --get-build
     # cflags / setcflags
     # ldflags / setldlags
+    # there is a problem tunneling - char in argparse
         
     args = parser.parse_args()
 
