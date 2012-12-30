@@ -1,0 +1,2 @@
+../../pollenc -t rustyisacowboy -E pollen_gcc -m atmega328p -i ./bundles/core -i ./bundles/blink.avr -o ./blink-out bundles/blink.avr/Blink0 --host localhost -l arduino -s /dev/ttyACM1 -b 115200
+../../pollenc -t rustyisacowboy -E pollen_gcc -m atmega328p -i ./bundles/core -i ./bundles/blink.avr -o ./blink-out bundles/blink.avr/Blink0 --host localhost -l arduino -s /dev/ttyACM1 -b 115200

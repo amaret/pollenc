@@ -2,6 +2,7 @@
 
 # Copyright 2012, 2013 Amaret Inc. All rights reserved.
 
+import sys
 import subprocess
 import shutil
 import shlex
@@ -79,14 +80,10 @@ class Pollenc:
             return False
         return True
 
-    # bug!  why does this zip not create error when bogus
-    # bug!  test by removing remove code
-    # presumes path is the parent dir to the 'code' dir
     def zipdir(self, path, zip):
         origpath = os.getcwd()
         os.chdir(path)
         namelist = ''
-        #for root, dirs, files in os.walk(path):
         for root, dirs, files in os.walk('.'):
             for file in files:
                 if self.filenameOk(file):
@@ -116,7 +113,24 @@ class Pollenc:
         zip.close()
 
     def makePollenZip(self):
-        raise Exception('not implemented')
+        zip = zipfile.ZipFile(self.workzip, 'w')
+        ptmp = []
+        if self.args.includes == None:
+            raise Exception('-i required')
+        else:
+            for d in self.args.includes:
+                ptmp.append(d)
+
+        tmpdir = '/tmp/' + self.workname
+        for src in ptmp:
+            if not os.path.exists(src):
+                continue #system bundle
+            rmdir(tmpdir)
+            os.mkdir(tmpdir)
+            shutil.copytree(src,tmpdir + '/' + src)
+            self.zipdir(tmpdir, zip)
+            #rmdir(tmpdir)
+        zip.close()
 
     def makezip(self):
        
@@ -138,8 +152,33 @@ class Pollenc:
         file.close()
         b64data = base64.b64encode(data)
 
-        jsonstr = '{\"buildenv\": \"%s\", \"tid\": \"%s\", \"aid\": \"%s\", \"reply\": \"%s\", \"type\": \"request\", \"service\": \"compile\", \"user\": {\"token\": \"%s\", \"id\": \"%s\", \"name\": \"%s\"}, \"project\": {\"id\": \"%s\", \"name\": \"%s\"}, \"content\" :  {\"source\":  \"%s\", \"filename\": \"%s\", \"partnum\": \"%s\" } }' % (args.buildenv, 0, 42, "dummy_replyTo", args.token, 12345678, None, 'myproj123', 'myproj', b64data, args.filename, args.mcu)
-       
+        jsonobj = {'buildenv': self.args.buildenv, 
+                   'tid': 0,
+                   'aid': 0,
+                   'reply': 'dummy', 
+                   'type': 'request', 
+                   'service': 'compile', 
+                   'user': {
+                       'token': self.args.token, 
+                       'id': 0, 
+                       'name': 'None'
+                       },
+                   'project': {
+                       'id': 0, 
+                       'name': 'None'
+                       }, 
+                   'content' :  {
+                       'source':  b64data, 
+                       'filename': self.args.filename, 
+                       'outdir': self.args.outdir, 
+                       'partnum': self.args.mcu
+                       }
+                   }
+        if self.args.buildpollen:
+            jsonobj['content']['bundlenames'] = self.args.includes
+        
+        jsonstr = json.dumps(jsonobj)
+        print(jsonstr)
         self.write(jsonstr)
 
     def run(self):
@@ -149,7 +188,7 @@ class Pollenc:
 
         while True:
             r = self.read()
-            workobj   = json.loads(r)
+            workobj = json.loads(r)
             if workobj['type'] != 'response':
                 print ('%s' % (workobj['content']['content']))
                 continue
@@ -162,9 +201,44 @@ class Pollenc:
 
         b64 = workobj['content']['content']
         zipbytes = base64.b64decode(b64)
+        origpath = os.getcwd()
+        os.chdir(self.args.outdir)
         unzip(zipbytes)
+        os.chdir(origpath)
         if self.args.loader != None:
             self.loadHex()
+
+    def getPackageName(self):
+        (head, modulename) = os.path.split(self.getFilename())
+        (head, pkgname) = os.path.split(head)
+        return pkgname
+
+    def getModuleName(self):
+        (head, modulename) = os.path.split(self.getFilename())
+        return modulename
+     
+    def getFilename(self):
+        return self.args.filename
+
+    def getOutDir(self):
+        return self.args.outdir
+     
+    def getOutRootName(self):
+        return self.getOutDir() + '/' + self.getPackageName() + '/' + self.getModuleName() + '/' + self.getModuleName()
+
+    def getProgName(self):
+        return self.getOutRootName() + '-prog.c'
+
+    def getMapName(self):
+        return self.getOutRootName() + '-prog.map'
+
+    def getHexName(self):
+        if self.args.buildpollen:
+            return self.getOutRootName() + '-prog.hex'
+        return 'out/a.out.hex'
+
+    def getOutName(self):
+        return self.getOutRootName() + '-prog.out'
 
     def loadHex(self):
         
@@ -177,7 +251,7 @@ class Pollenc:
             cmd += ' -b ' + self.args.baud
         if self.args.loader != None:
             cmd += ' -p ' + self.args.loader
-        cmd += ' -c flash:w:a.out.hex'
+        cmd += ' -c flash:w:' + self.getHexName()
 
         pipeCmd(cmd)
 
@@ -223,16 +297,25 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mcu',  dest='mcu', action='store', help='mcu', required=True)
     parser.add_argument('-E', '--buildenv',  dest='buildenv', action='store', help='build environment', required=True)
     parser.add_argument('-t', '--token',   dest='token', action='store', help='user credential', required=True)
+    parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', required=True)
     parser.add_argument('-i', '--include',   dest='includes', action='append', help='code dirs')
     parser.add_argument('filename', nargs='?')
         
     args = parser.parse_args()
 
+    if args.filename == None:
+        print('no filename specified')
+        sys.exit(0)
+
+    if args.buildc == False:
+        args.buildpollen = True #default
     if args.buildpollen == True:
         args.buildc = False
     
-    if args.filename == None:
-        raise Exception('no filename specified')
+    if args.outdir != None:
+        if os.path.exists(args.outdir):
+            rmdir(args.outdir)
+        os.mkdir(args.outdir)
 
     Pollenc(args).run() 
 

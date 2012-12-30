@@ -18,7 +18,26 @@ MAX_MSG_SIZE = 1000000
 rdis = None
 args = ''
 
-ERROR_MSG = '{\"tid\": \"0\", \"aid\": \"0\", \"type\": \"response\", \"service\": \"compile\", \"user\": {\"id\": \"0\", \"name\": \"None\"}, \"project\": {\"id\": \"0\", \"name\": \"None\"}, \"content\" : {\"content\": \"None\", \"filename\": \"None\", \"error\": \"%s\" }}'
+ERROR_MSG_OBJ = {
+                'tid': 0, 
+                'aid': 0, 
+                'type': 'response', 
+                'service': 'compile', 
+                'user': {
+                    'id': 0, 
+                    'name': 
+                    'None'
+                    }, 
+                'project': {
+                    'id': 0, 
+                    'name': 
+                    'None'
+                    }, 
+                'content' : {
+                    'content': 'None', 
+                    'filename': 'None'
+                    }
+                }
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
@@ -27,12 +46,12 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     #
     def getQName(self, buildenv):
         if buildenv == 'msp430_gcc':
-            return 'CLC_MSP430_1_0'
+            return 'CLC_MSP430_GCC_1_0'
         if buildenv == 'arduino_gcc':
-            return 'CLC_ARDUINO_1_0'
+            return 'CLC_ARDUINO_GCC_1_0'
         if buildenv == 'pollen_gcc':
             return 'CLC_POLLEN_GCC_1_0'
-        raise Exception('unsupported envoronment: %s' % (buildenv))
+        raise Exception('PollenServer: unsupported envoronment: %s' % (buildenv))
 
     def write(self, qname, dstr):
 	    rdis.lpush(qname, dstr);
@@ -45,8 +64,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def handleError(self, etxt):
         syslog.syslog(syslog.LOG_ERR, etxt)
-        emsg =  ERROR_MSG % (etxt)
-        hmsg = "%i\n%s" % (len(emsg), emsg)
+        ERROR_MSG_OBJ['content']['error'] = etxt
+        emsgtxt = json.dumps(ERROR_MSG_OBJ)
+        hmsg = "%i\n%s" % (len(emsgtxt), emsgtxt)
         self.request.send(hmsg)
     #
     # end redis usage
