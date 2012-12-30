@@ -302,9 +302,13 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mcu',  dest='mcu', action='store', help='mcu', required=True)
     parser.add_argument('-E', '--buildenv',  dest='buildenv', action='store', help='build environment', required=True)
     parser.add_argument('-t', '--token',   dest='token', action='store', help='user credential', required=True)
-    parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', required=True)
+    parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir')
     parser.add_argument('-i', '--include',   dest='includes', action='append', help='code dirs')
     parser.add_argument('filename', nargs='?')
+
+    #todo:
+    # cflags / setcflags
+    # ldflags / setldlags
         
     args = parser.parse_args()
 
@@ -317,10 +321,11 @@ if __name__ == "__main__":
     if args.buildpollen == True:
         args.buildc = False
     
-    if args.outdir != None:
-        if os.path.exists(args.outdir):
-            rmdir(args.outdir)
-        os.mkdir(args.outdir)
+    if args.outdir == None:
+        args.outdir = 'build'
+    if os.path.exists(args.outdir):
+        rmdir(args.outdir)
+    os.mkdir(args.outdir)
 
     Pollenc(args).run() 
 
