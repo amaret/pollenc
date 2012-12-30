@@ -129,8 +129,8 @@ class Pollenc:
             os.mkdir(tmpdir)
             shutil.copytree(src,tmpdir + '/' + src)
             self.zipdir(tmpdir, zip)
-            #rmdir(tmpdir)
         zip.close()
+        rmdir(tmpdir)
 
     def makezip(self):
        
@@ -151,6 +151,7 @@ class Pollenc:
             data += chunk
         file.close()
         b64data = base64.b64encode(data)
+        rmfile(self.workzip)
 
         jsonobj = {'buildenv': self.args.buildenv, 
                    'tid': 0,
