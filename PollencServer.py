@@ -15,7 +15,6 @@ import base64
 
 MAX_MSG_SIZE = 1000000
 
-rdis = None
 args = ''
 
 ERROR_MSG_OBJ = {
@@ -41,6 +40,13 @@ ERROR_MSG_OBJ = {
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
+    rdis = None
+
+    def getRdis(self):
+        if self.rdis == None:
+            self.rdis = redis.Redis(host=args.rdishost, port=args.rdisport)
+        return self.rdis
+
     #
     # begin redis usage
     #
@@ -54,10 +60,10 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         raise Exception('PollenServer: unsupported envoronment: %s' % (buildenv))
 
     def write(self, qname, dstr):
-	    rdis.lpush(qname, dstr);
+	    self.getRdis().lpush(qname, dstr);
     
     def read(self, replyQueue):
-        response = rdis.brpop(keys=[replyQueue], timeout=30);
+        response = self.getRdis().brpop(keys=[replyQueue], timeout=30);
         if ( not response or not len(response) == 2) :
             raise Exception('bad response from clc: %s' % (response))
         return response[1]
@@ -186,7 +192,6 @@ if __name__ == '__main__':
         args.rdisport = 6379
 
     syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (args.rdishost, args.rdisport))
-    rdis = redis.Redis(host=args.rdishost, port=args.rdisport)
     
     address = ('0.0.0.0', 2323)
     server = PollencServer(address, PollencRequestHandler)
