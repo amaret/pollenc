@@ -40,12 +40,13 @@ ERROR_MSG_OBJ = {
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
-    rdis = None
+    #rdis = None
 
     def getRdis(self):
-        if self.rdis == None:
-            self.rdis = redis.Redis(host=args.rdishost, port=args.rdisport)
-        return self.rdis
+        #if self.rdis == None:
+        #    self.rdis = redis.Redis(host=args.rdishost, port=args.rdisport)
+        #return self.rdis
+        return redis.Redis(host=args.rdishost, port=args.rdisport)
 
     #
     # begin redis usage
