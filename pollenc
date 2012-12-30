@@ -234,7 +234,8 @@ class Pollenc:
 
     def getHexName(self):
         if self.args.buildpollen:
-            return self.getOutRootName() + '-prog.hex'
+            n = self.getOutRootName() + '-prog.hex'
+            return n
         return 'out/a.out.hex'
 
     def getOutName(self):
