@@ -176,6 +176,7 @@ class Pollenc:
                    }
         if self.args.buildpollen:
             jsonobj['content']['bundlenames'] = self.args.includes
+        jsonobj['content']['getbuild'] = self.args.getbuild
         
         jsonstr = json.dumps(jsonobj)
         print(jsonstr)
