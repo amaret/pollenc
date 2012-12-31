@@ -95,6 +95,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             hlenRec = ''
             while True:
                 b = self.request.recv(1)
+                if b == '':
+                    syslog.syslog(syslog.LOG_WARNING, 'recv returned unexpectedly, rejecting.')
+                    return
                 if b == '\n':
                     hlen = int(hlenRec)
                     break
