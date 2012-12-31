@@ -52,16 +52,21 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     # begin redis usage
     #
     def getQName(self, buildenv):
+        if buildenv == 'pollen_avr_gcc':
+            return 'CLC_POLLEN_AVR_GCC_1_0'
+        if buildenv == 'pollen_msp430_gcc':
+            return 'CLC_POLLEN_MSP430_GCC_1_0'
         if buildenv == 'msp430_gcc':
             return 'CLC_MSP430_GCC_1_0'
-        if buildenv == 'arduino_gcc':
-            return 'CLC_ARDUINO_GCC_1_0'
-        if buildenv == 'pollen_gcc':
-            return 'CLC_POLLEN_GCC_1_0'
+        if buildenv == 'avr_gcc':
+            return 'CLC_AVR_GCC_1_0'
+        if buildenv == 'arduino':
+            return 'CLC_ARDUINO_1_0'
+
         raise Exception('PollenServer: unsupported envoronment: %s' % (buildenv))
 
     def write(self, qname, dstr):
-	    self.getRdis().lpush(qname, dstr);
+      self.getRdis().lpush(qname, dstr);
     
     def read(self, replyQueue):
         response = self.getRdis().brpop(keys=[replyQueue], timeout=30);
@@ -175,7 +180,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class PollencServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-	pass
+  pass
 
 
 if __name__ == '__main__':
