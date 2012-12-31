@@ -51,19 +51,19 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     #
     # begin redis usage
     #
-    def getQName(self, buildenv):
-        if buildenv == 'pollen_avr_gcc':
+    def getQName(self, compiler):
+        if compiler == 'pollen_avr_gcc':
             return 'CLC_POLLEN_AVR_GCC_1_0'
-        if buildenv == 'pollen_msp430_gcc':
+        if compiler == 'pollen_msp430_gcc':
             return 'CLC_POLLEN_MSP430_GCC_1_0'
-        if buildenv == 'msp430_gcc':
+        if compiler == 'msp430_gcc':
             return 'CLC_MSP430_GCC_1_0'
-        if buildenv == 'avr_gcc':
+        if compiler == 'avr_gcc':
             return 'CLC_AVR_GCC_1_0'
-        if buildenv == 'arduino':
+        if compiler == 'arduino':
             return 'CLC_ARDUINO_1_0'
 
-        raise Exception('PollenServer: unsupported envoronment: %s' % (buildenv))
+        raise Exception('PollenServer: unsupported compiler: %s' % (compiler))
 
     def write(self, qname, dstr):
       self.getRdis().lpush(qname, dstr);
@@ -139,7 +139,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             cur_thread = threading.currentThread()
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["token"])
             dataobj["reply"] = responseQueue
-            qname = self.getQName(dataobj['buildenv']);
+            qname = self.getQName(dataobj['compiler']);
             self.write(qname, json.dumps(dataobj))
 
             while True:

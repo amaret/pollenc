@@ -13,6 +13,8 @@ import os
 import base64
 import random
 import socket
+import time
+import hashlib
 
 def rmfile(f):
     try:
@@ -132,6 +134,24 @@ class Pollenc:
         zip.close()
         rmdir(tmpdir)
 
+    # def getModulePaths(module, options):
+    #   (pkg, sep, mod) = module.rpartition('.')
+    #   options.bundle = None
+    # 
+    #   for bundle in options.input:
+    #     p = '%s/%s/%s.p' % (bundle, pkg, mod)
+    #     if os.path.isfile(p):
+    #       options.pfile = p 
+    #       options.progFile = '%s/%s/%s-prog.out' % (options.outdir, pkg, mod)
+    #       options.hexFile = '%s/%s/%s-prog.hex' % (options.outdir, pkg, mod)
+    #       options.bundle = bundle
+    #       options.package = pkg
+    #       options.module = mod
+    # 
+    #   if options.bundle == None:
+    #     print "Could not find module: " + module
+    #     sys.exit()
+
     def makezip(self):
        
         rmfile(self.workzip)
@@ -152,10 +172,13 @@ class Pollenc:
         file.close()
         b64data = base64.b64encode(data)
         rmfile(self.workzip)
-
-        jsonobj = {'buildenv': self.args.buildenv, 
-                   'tid': 0,
-                   'aid': 0,
+        
+        print "send zip, pollenbuild=%s, cbuild=%s, filename=%s" % (self.args.buildpollen, self.args.buildc, self.args.filename)
+        
+        tid = hashlib.sha1(str(time.time()) + '-' + self.args.token).hexdigest()
+        jsonobj = {'compiler': (self.args.buildpollen ? 'pollen_' : '') + self.args.compiler.lower(), 
+                   'tid': tid,
+                   'aid': '%s-%s' % (self.args.token, tid),
                    'reply': 'dummy', 
                    'type': 'request', 
                    'service': 'compile', 
@@ -189,7 +212,7 @@ class Pollenc:
             jsonobj['content']['setldflags'] = self.args.setldflags
         
         jsonstr = json.dumps(jsonobj)
-        print(jsonstr)
+        #print(jsonstr)
         self.write(jsonstr)
 
     def run(self):
@@ -307,8 +330,8 @@ if __name__ == "__main__":
     parser.add_argument('--build-c', 
             dest='buildc', action='store_true', help='build c')
 
-    parser.add_argument('--build-pollen', 
-            dest='buildpollen', action='store_true', help='build pollen')
+    #parser.add_argument('--build-pollen', 
+    #        dest='buildpollen', action='store_true', help='build pollen')
 
     parser.add_argument('--translate-only', 
             dest='translateonly', 
@@ -348,14 +371,17 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mcu',  
             dest='mcu', action='store', help='mcu', required=True)
 
-    parser.add_argument('-E', '--buildenv', 
-            dest='buildenv', action='store', help='build environment', required=True)
+    parser.add_argument('-c', '--compiler', 
+            dest='buildcc', action='store', help='build environment', required=True)
+
+    #parser.add_argument('-E', '--buildenv', 
+    #        dest='buildenv', action='store', help='build environment', required=True)
 
     parser.add_argument('-t', '--token', 
             dest='token', action='store', help='user credential', required=True)
 
     parser.add_argument('-o', '--out', 
-            dest='outdir', action='store', help='output dir', required=True)
+            dest='outdir', action='store', help='output dir', default='./build')
 
     parser.add_argument('-i',
             dest='includes', action='append', help='code dirs')
@@ -373,10 +399,15 @@ if __name__ == "__main__":
         print('no filename specified')
         sys.exit(0)
 
-    if args.buildc == False:
-        args.buildpollen = True #default
-    if args.buildpollen == True:
-        args.buildc = False
+    #if args.buildc == False:
+    #    args.buildpollen = True #default
+    #if args.buildpollen == True:
+    #    args.buildc = False
+    if args.buildc == True:
+        args.buildpollen = False
+    else:
+        args.buildpollen = True
+        args.buildc == False
     
     if os.path.exists(args.outdir):
         rmdir(args.outdir)
