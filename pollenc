@@ -134,24 +134,6 @@ class Pollenc:
         zip.close()
         rmdir(tmpdir)
 
-    # def getModulePaths(module, options):
-    #   (pkg, sep, mod) = module.rpartition('.')
-    #   options.bundle = None
-    # 
-    #   for bundle in options.input:
-    #     p = '%s/%s/%s.p' % (bundle, pkg, mod)
-    #     if os.path.isfile(p):
-    #       options.pfile = p 
-    #       options.progFile = '%s/%s/%s-prog.out' % (options.outdir, pkg, mod)
-    #       options.hexFile = '%s/%s/%s-prog.hex' % (options.outdir, pkg, mod)
-    #       options.bundle = bundle
-    #       options.package = pkg
-    #       options.module = mod
-    # 
-    #   if options.bundle == None:
-    #     print "Could not find module: " + module
-    #     sys.exit()
-
     def makezip(self):
        
         rmfile(self.workzip)
@@ -173,10 +155,14 @@ class Pollenc:
         b64data = base64.b64encode(data)
         rmfile(self.workzip)
         
-        print "send zip, pollenbuild=%s, cbuild=%s, filename=%s" % (self.args.buildpollen, self.args.buildc, self.args.filename)
-        
+        if self.args.buildpollen:
+            p = self.getModulePath()
+            if p == None:
+                print "Module " + self.args.filename + " not found in included bundles"
+                sys.exit()     
+                
         tid = hashlib.sha1(str(time.time()) + '-' + self.args.token).hexdigest()
-        jsonobj = {'compiler': (self.args.buildpollen ? 'pollen_' : '') + self.args.compiler.lower(), 
+        jsonobj = {'compiler': ('pollen_' if self.args.buildpollen else '') + self.args.buildcc.lower(), 
                    'tid': tid,
                    'aid': '%s-%s' % (self.args.token, tid),
                    'reply': 'dummy', 
@@ -193,7 +179,7 @@ class Pollenc:
                        }, 
                    'content' :  {
                        'source':  b64data, 
-                       'filename': self.args.filename, 
+                       'filename': self.getFilename(),
                        'outdir': self.args.outdir, 
                        'partnum': self.args.mcu
                        }
@@ -240,19 +226,39 @@ class Pollenc:
         unzip(zipbytes)
         os.chdir(origpath)
         if self.args.loader != None:
+            print "Loading hex...",
             self.loadHex()
+            print "done."
+
+    def getModulePath(self):
+        pkg = self.getPackageName()
+        mod = self.getModuleName()
+
+        for bundle in self.args.includes:
+            p = '%s/%s/%s.p' % (bundle, pkg, mod)
+            if os.path.isfile(p):
+                return p
+        
+        return None
 
     def getPackageName(self):
-        (head, modulename) = os.path.split(self.getFilename())
-        (head, pkgname) = os.path.split(head)
-        return pkgname
+        parts = self.args.filename.rpartition('.')
+        #(head, modulename) = os.path.split(self.getFilename())
+        #(head, pkgname) = os.path.split(head)
+        return parts[0]
 
     def getModuleName(self):
-        (head, modulename) = os.path.split(self.getFilename())
-        return modulename
+        parts = self.args.filename.rpartition('.')
+        if len(parts) > 1:
+            return parts[2]
+        else:        
+            return parts[0]
      
     def getFilename(self):
-        return self.args.filename
+        if self.args.buildpollen:
+            return self.getModulePath()
+        else:
+            return self.args.filename
 
     def getOutDir(self):
         return self.args.outdir

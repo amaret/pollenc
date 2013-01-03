@@ -17,12 +17,6 @@ module Blink0 {
     while(true) {
       togglePin()
       delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
-      delaySome()
     }
   }
   
@@ -31,7 +25,7 @@ module Blink0 {
   }
   
   delaySome() {
-    for(uint32 i = 0; i < 1000000; i++) {
+    for(uint32 i = 0; i < 100000; i++) {
       +{ asm("nop") }+              
     }
   }

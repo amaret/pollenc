@@ -126,6 +126,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 data += b
 
             dataobj = ''
+                        
             try:
                 dataobj = json.loads(data)
             except ValueError, e:
