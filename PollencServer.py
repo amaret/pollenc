@@ -91,6 +91,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def validateToken(self, token):
         t = WindData.findOne('clc.tokens', {'token': token, 'active': True})
+        if t != None:
+            del t['_id']
+            syslog.syslog(syslog.LOG_ERR, json.dumps(t))
         return t != None
         #return token == 'rustyisacowboy'
     
@@ -141,7 +144,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             token = dataobj["user"]["token"]
             if not self.validateToken(token):
-                etxt = 'rejecting token %s' % (token)
+                etxt = 'invalid token \'%s\'' % (token)
                 self.handleError(etxt)
                 return
 
