@@ -2,6 +2,11 @@
 
 # Copyright 2012, 2013 Amaret Inc. All rights reserved.
 
+import sys
+import os
+sys.path.append(sys.path[0] + os.sep + '..' + os.sep + 'wind.lib')
+#sys.path.append(sys.path[0] + os.sep + '../wind/' + os.sep + 'wind.lib')
+
 import SocketServer
 import StringIO
 import threading
@@ -9,9 +14,9 @@ import redis
 import argparse
 import syslog
 import json
-import sys
 import traceback
 import base64
+import WindData
 
 MAX_MSG_SIZE = 1000000
 
@@ -85,8 +90,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     #
 
     def validateToken(self, token):
-        #todo:
-        return token == 'rustyisacowboy'
+        t = WindData.findOne('clc.tokens', {'token': token, 'active': True})
+        return t != None
+        #return token == 'rustyisacowboy'
     
     def handle(self):
         try:

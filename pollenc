@@ -389,7 +389,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--out', 
             dest='outdir', action='store', help='output dir', default='./build')
 
-    parser.add_argument('-i',
+    parser.add_argument('-i', '--include',
             dest='includes', action='append', help='code dirs')
 
     parser.add_argument('filename', nargs='?')
