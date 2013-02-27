@@ -25,7 +25,7 @@ module FastBlink0 {
   }
   
   delaySome() {
-    for(uint32 i = 0; i < 1000000; i++) {
+    for(uint32 i = 0; i < 500000; i++) {
       +{ asm("nop") }+              
     }
   }

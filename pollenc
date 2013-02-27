@@ -233,6 +233,7 @@ class Pollenc:
     def getModulePath(self):
         pkg = self.getPackageName()
         mod = self.getModuleName()
+        #print ('pkg name: %s mod name: %s' % (pkg, mod))
 
         for bundle in self.args.includes:
             p = '%s/%s/%s.p' % (bundle, pkg, mod)

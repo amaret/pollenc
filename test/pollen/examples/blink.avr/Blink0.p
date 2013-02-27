@@ -25,7 +25,7 @@ module Blink0 {
   }
   
   delaySome() {
-    for(uint32 i = 0; i < 100000; i++) {
+    for(uint32 i = 0; i < 3000000; i++) {
       +{ asm("nop") }+              
     }
   }
