@@ -1,6 +1,6 @@
 <?php
 
-$__MONGO_HOST = "redbis.wind.io";
+$__MONGO_HOST = "localhost"; //"redbis.wind.io";
 $__SITE_URL = "http://pollen.wind.io/tokens";
 
 require_once "Mail.php";
@@ -9,28 +9,30 @@ require_once "./access.php";
 $error = '';
 $message = '';
 
-  if (isset($_GET['email'])) {
-    if (emailExists($_GET['email'])) {
-        $error = "This user has already generated a token.";
-    } else {
-      $vid = newToken($_GET['email']);
-      $r = sendValidationEmail($_GET['email'], $vid);
-      
-      if ($r == 'ok') { 
-        $message = "An email has been sent.";
-      } else { 
-        $error = $r; 
-      }
-    }
-  } else if (isset($_GET['vid'])) {
-    $ret = validateEmail($_GET['vid']);
+if (isset($_GET['email'])) {
+  if (emailExists($_GET['email'])) {
+      $error = "This user has already generated a token.";
+  } else {
+    $vid = newToken($_GET['email']);
+    $r = sendValidationEmail($_GET['email'], $vid);
     
-    if ($ret['result'] == "ok") {
-      $message = "Your access token is: " . $ret['token'];
-    } else {
-      $error = $ret['error'];
+    if ($r == 'ok') { 
+      $message = "An email has been sent.";
+    } else { 
+      removeVid($vid);
+      $error = $r; 
     }
-  }  
+  }
+} else if (isset($_GET['vid'])) {
+  $ret = validateEmail($_GET['vid']);
+  
+  if ($ret['result'] == "ok") {
+    $message = "Your access token is: " . $ret['token'];
+  } else {
+    $error = $ret['error'];
+  }
+}  
+
 ?>
 
 

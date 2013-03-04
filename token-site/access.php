@@ -23,6 +23,15 @@ function newToken($email) {
   return $vid;
 }
 
+function removeVid($vid) {
+  global $store;
+  
+  $rec = $store->findOne('clc.tokens', array("vid" => $vid));
+  if ($rec != null) {
+    $store->remove('clc.tokens', array("vid" => $vid));
+  }
+}
+
 function validateEmail($vid) {
   global $store;
   $rec = $store->findOne('clc.tokens', array('vid' => $vid));
@@ -51,23 +60,27 @@ function validateEmail($vid) {
 }
 
 function sendValidationEmail($to, $vid) {
+  global $__SITE_URL;
   $from = "Amaret Pollen <info@wind.io>";
   $subject = "Pollen email validation";
   $body =  "Thank you for your interest in using pollen.\n";
-  $body .= "To receive your access token, please validate your email: " . $__SITE_URL . "?vid=" . $vid . "\n\n\n";
+  $body .= "To receive your access token, please validate your email:\n" . $__SITE_URL . "?vid=" . $vid . "\n\n\n";
   $body .= "--\nAmaret, Inc.\nhttp://pollen.wind.io";
 
-  return sendEmail($from, $to, $subject, $body);
+  //return sendEmail($from, $to, $subject, $body);
+  return sendSecureEmail($from, $to, $subject, $body);
 }
 
 function sendTokenEmail($to, $token) {
   $from = "Amaret Pollen <info@wind.io>";
   $subject = "Your pollen compiler token";
-  $body =  "You now have access to use the pollen compiler. For help using the compiler, see the docs at (todo).\n";
+  $body =  "You now have access to use the pollen compiler.\n";
+  $body .= "For help using the compiler, see the docs at (todo).\n";
   $body .= "Your access token is: " . $token . "\n\n";
   $body .= "--\nAmaret, Inc.\nhttp://pollen.wind.io";
 
-  return sendEmail($from, $to, $subject, $body);  
+//  return sendEmail($from, $to, $subject, $body);  
+  return sendSecureEmail($from, $to, $subject, $body);
 }
 
 function sendEmail($from, $to, $subject, $body) {
@@ -86,6 +99,25 @@ function sendEmail($from, $to, $subject, $body) {
   } else {
     return "ok";
   }  
+}
+
+function sendSecureEmail($from, $to, $subject, $body) {
+  $host = "ssl://email-smtp.us-east-1.amazonaws.com";
+  $port = "465";
+  $username = "AKIAJ5S2KOOFTYV6B7PA";
+  $password = "AhdNBd175AnxMA69joKnMkDm5pZntjlIqTbA5nLf3Ro5";
+
+  $headers = array ('From' => $from, 'To' => $to, 'Subject' => $subject);
+  $smtp = Mail::factory('smtp', array ('host' => $host, 'port' => $port, 'auth' => true,
+                        'username' => $username, 'password' => $password));
+
+  $mail = $smtp->send($to, $headers, $body);
+
+  if (PEAR::isError($mail)) {
+    return $mail->getMessage();
+  } else {
+    return "ok";
+  }
 }
 
 function generateVid() { return genid(8); }
