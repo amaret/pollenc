@@ -54,7 +54,7 @@ function sendValidationEmail($to, $vid) {
   $from = "Amaret Pollen <info@wind.io>";
   $subject = "Pollen email validation";
   $body =  "Thank you for your interest in using pollen.\n";
-  $body .= "To receive your access token, please validate your email: http://localhost/w2/pollen?vid=" . $vid . "\n\n\n";
+  $body .= "To receive your access token, please validate your email: " . $__SITE_URL . "?vid=" . $vid . "\n\n\n";
   $body .= "--\nAmaret, Inc.\nhttp://pollen.wind.io";
 
   return sendEmail($from, $to, $subject, $body);
@@ -89,10 +89,10 @@ function sendEmail($from, $to, $subject, $body) {
 }
 
 function generateVid() { return genid(8); }
-function generateToken() { return genid(12); }
+function generateToken() { return genid(8); }
 
 function genid($len) {
-  $charset='abcdefghijklmnopqrstuvwxyz0123456789';
+  $charset='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   $str = '';
   $count = strlen($charset) - 1;
   while ($len--) {

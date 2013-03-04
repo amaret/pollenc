@@ -7,7 +7,7 @@ class MongoStore {
   function __construct() {
 
     if (!self::$dbh) {
-        $m = new Mongo('localhost' .':'. '27017');
+        $m = new Mongo($__MONGOHOST .':'. '27017');
         self::$dbh = $m->selectDB('wind');
     }
   }
