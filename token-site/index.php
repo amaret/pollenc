@@ -1,7 +1,7 @@
 <?php
 
 $__MONGO_HOST = "redbis.wind.io";
-$__SITE_URL = "http://pollen.wind.io/tokens"
+$__SITE_URL = "http://pollen.wind.io/tokens";
 
 require_once "Mail.php";
 require_once "./access.php";
