@@ -316,6 +316,7 @@ def unzip (src):
 
 def pipeCmd(command):
 
+    print("trying to run cmd: %s" % (command))
     commandOut = ""
     commandErr = ""
     try:
