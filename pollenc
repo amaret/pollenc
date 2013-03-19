@@ -128,7 +128,8 @@ class Pollenc:
             if not os.path.exists(src):
                 continue #system bundle
             rmdir(tmpdir)
-            os.mkdir(tmpdir)
+            if src != '.':
+                os.mkdir(tmpdir)
             shutil.copytree(src,tmpdir + '/' + src)
             self.zipdir(tmpdir, zip)
         zip.close()
