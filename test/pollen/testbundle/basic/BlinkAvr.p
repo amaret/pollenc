@@ -1,6 +1,6 @@
-package blink.avr
+package basic
 
-module Blink0 {
+module BlinkAvr {
 
   +{ #include <avr/io.h> }+
 

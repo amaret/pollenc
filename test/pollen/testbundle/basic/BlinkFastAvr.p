@@ -1,6 +1,6 @@
-package blink.avr
+package basic
 
-module Blink0 {
+module BlinkFastAvr {
 
   +{ #include <avr/io.h> }+
 
@@ -18,7 +18,7 @@ module Blink0 {
   !-- Helper method --!
   delay(uint16 ms) {
     for (; ms > 0; --ms) {
-      for (uint16 us = 3000; us > 0; --us) {
+      for (uint16 us = 500; us > 0; --us) {
         +{ asm ("nop") }+                              
       }
     }
