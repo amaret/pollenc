@@ -371,7 +371,7 @@ if __name__ == "__main__":
             dest='serial', action='store', help='serial port')
 
     parser.add_argument('--host', 
-            dest='host', action='store', help='wind.io host', default="channel.wind.io")
+            dest='host', action='store', help='wind.io host', default="passage.wind.io")
 
     parser.add_argument('--port', 
             dest='port', action='store', help='wind.io port', default=2323, type=int)

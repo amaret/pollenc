@@ -3,5 +3,6 @@ export PATH=$PATH:../../../downloader/dnldr
 
 #../../pollenc -t abcdefghijkl -c avr_gcc -m atmega328p -i ./bundles/core -i ./testbundle -o ./blink-out ./testbundle/blink.avr/FastBlink0.p -l arduino -s /dev/ttyACM0 -b 115200 --host localhost
 
-../../pollenc -t abcdefgh -c avr_gcc -m atmega328p -i ./bundles/core -i ./testbundle -o ./blink-out ./testbundle/blink.avr/FastBlink0.p -l arduino -s /dev/ttyACM0 -b 115200 --host passage.wind.io
+#../../pollenc -t abcdefgh -c avr_gcc -m atmega328p -i ./bundles/core -i ./testbundle -o ./blink-out ./testbundle/blink.avr/FastBlink0.p -l arduino -s /dev/ttyACM0 -b 115200 --host passage.wind.io
+../../pollenc -t abcdefgh -c avr_gcc -m atmega328p -i ./bundles/core -i ./testbundle -o ./blink-out ./testbundle/blink.avr/FastBlink0.p -l arduino -s /dev/ttyACM0 -b 115200 
 
