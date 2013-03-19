@@ -155,11 +155,15 @@ class Pollenc:
         b64data = base64.b64encode(data)
         rmfile(self.workzip)
         
-        if self.args.buildpollen:
-            p = self.getModulePath()
-            if p == None:
-                print "Module " + self.args.filename + " not found in included bundles"
-                sys.exit()     
+        if not os.path.exists(self.args.filename):
+            print "Module " + self.args.filename + " not found"
+            sys.exit()     
+
+        #if self.args.buildpollen:
+            #p = self.getModulePath()    #todo exists
+            #if p == None:
+            #    print "Module " + self.args.filename + " not found in included bundles"
+            #    sys.exit()     
                 
         tid = hashlib.sha1(str(time.time()) + '-' + self.args.token).hexdigest()
         jsonobj = {'compiler': ('pollen_' if self.args.buildpollen else '') + self.args.buildcc.lower(), 
@@ -248,34 +252,42 @@ class Pollenc:
         #(head, pkgname) = os.path.split(head)
         return parts[0]
 
-    def getModuleName(self):
-        parts = self.args.filename.rpartition('.')
-        if len(parts) > 1:
-            return parts[2]
-        else:        
-            return parts[0]
+    #def getModuleName(self):
+    #    parts = self.args.filename.rpartition('.')
+    #    if len(parts) > 1:
+    #        return parts[2]
+    #    else:        
+    #        return parts[0]
      
     def getFilename(self):
-        if self.args.buildpollen:
-            return self.getModulePath()
-        else:
-            return self.args.filename
+        #if self.args.buildpollen:
+        #    return self.getModulePath()
+        #else:
+        return self.args.filename
 
     def getOutDir(self):
         return self.args.outdir
      
-    def getOutRootName(self):
-        return self.getOutDir() + '/' + self.getPackageName() + '/' + self.getModuleName() + '/' + self.getModuleName()
+    #def getOutRootName(self):
+    #    return self.getOutDir() + '/' + self.getPackageName() + '/' + self.getModuleName() + '/' + self.getModuleName()
 
-    def getProgName(self):
-        return self.getOutRootName() + '-prog.c'
+    #def getProgName(self):
+    #    return self.getOutRootName() + '-prog.c'
 
-    def getMapName(self):
-        return self.getOutRootName() + '-prog.map'
+    #def getMapName(self):
+    #    return self.getOutRootName() + '-prog.map'
+
+    def findHexName(self):
+        for root, dirs, files in os.walk(self.getOutDir()):
+            for file in files:
+                if file.endswith('.hex'):
+                    return root + '/' + file
+        raise Exception('hex file not generated')
 
     def getHexName(self):
         if self.args.buildpollen:
-            n = self.getOutRootName() + '-prog.hex'
+            #n = self.getOutRootName() + '-prog.hex'
+            n = self.findHexName()
             return n
         n = self.getOutDir() + '/' + self.getProgRootName() + '.out.hex'
         return n
@@ -283,8 +295,8 @@ class Pollenc:
     def getProgRootName(self):
         return os.path.splitext(self.getFilename())[0]
 
-    def getOutName(self):
-        return self.getOutRootName() + '-prog.out'
+    #def getOutName(self):
+    #    return self.getOutRootName() + '-prog.out'
 
     def loadHex(self):
         

@@ -1,5 +1,5 @@
 #export PATH=$PATH:$HOME/git/amaret/downloader/dnldr
 export PATH=$PATH:../../../downloader/dnldr
 
-../../pollenc -t abcdefghijkl -c msp430_gcc -m msp430g2452 -i ./bundles/core -i ./examples -o ./blink-out blink.msp430.Blink0 -l fet --host localhost
+../../pollenc -t abcdefghijkl -c msp430_gcc -m msp430g2452 -i ./bundles/core -i ./examples -o ./blink-out ./examples/blink.msp430/BlinkMsp430.p -l fet --host localhost
 
