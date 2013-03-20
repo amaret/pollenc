@@ -5,13 +5,14 @@
 import sys
 import os
 sys.path.append(sys.path[0] + os.sep + '..' + os.sep + 'wind.lib')
-#sys.path.append(sys.path[0] + os.sep + '../wind/' + os.sep + 'wind.lib')
+
+sys.path.insert(1, "/etc/amaret")
+import config
 
 import SocketServer
 import StringIO
 import threading
 import redis
-import argparse
 import syslog
 import json
 import traceback
@@ -19,8 +20,6 @@ import base64
 import WindData
 
 MAX_MSG_SIZE = 1000000
-
-args = ''
 
 ERROR_MSG_OBJ = {
                 'tid': 0, 
@@ -45,13 +44,8 @@ ERROR_MSG_OBJ = {
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
-    #rdis = None
-
     def getRdis(self):
-        #if self.rdis == None:
-        #    self.rdis = redis.Redis(host=args.rdishost, port=args.rdisport)
-        #return self.rdis
-        return redis.Redis(host=args.rdishost, port=args.rdisport)
+        return redis.Redis(host=config.redis['host'], port=config.redis['port'])
 
     #
     # begin redis usage
@@ -198,21 +192,10 @@ class PollencServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--rdishost', dest='rdishost', action='store', help='redis server hostname')
-    parser.add_argument('--rdisport',  dest='rdisport', action='store', help='redis server port', type=int)
-        
-    args = parser.parse_args()
-
-    if args.rdishost == None:
-        args.rdishost = "localhost"
-
-    if args.rdisport == None:
-        args.rdisport = 6379
-
-    syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (args.rdishost, args.rdisport))
+    syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (config.redis['host'], config.redis['port']))
     
-    address = ('0.0.0.0', 2323)
+    #address = ('0.0.0.0', 2323)
+    address = (config.pollenc['interface'], config.pollenc['port'])
     server = PollencServer(address, PollencRequestHandler)
 
     server.serve_forever()
