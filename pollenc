@@ -128,12 +128,28 @@ class Pollenc:
             if not os.path.exists(src):
                 continue #system bundle
             rmdir(tmpdir)
-            if src != '.':
-                os.mkdir(tmpdir)
-            shutil.copytree(src,tmpdir + '/' + src)
+            #if src != '.':
+            #    os.mkdir(tmpdir)
+            bundleName = self.getBundleName(src)
+            shutil.copytree(src, tmpdir + '/' + bundleName)
             self.zipdir(tmpdir, zip)
         zip.close()
         rmdir(tmpdir)
+
+    def getRelToTmpDirName(self):
+        abspath = os.path.abspath(self.args.filename)
+        (r, m) = os.path.split(abspath)
+        l = abspath.split("/")
+        llen = len(l)
+        if llen < 3:
+            raise Exception('filename must be in <bundle>/<package>')
+        r = l[llen -3] + '/' + l[llen -2] + '/' + l[llen -1]
+        return r
+
+    def getBundleName(self, path):
+        abspath = os.path.abspath(path)
+        (r, m) = os.path.split(abspath)
+        return m
 
     def makezip(self):
        
@@ -178,7 +194,7 @@ class Pollenc:
                        }, 
                    'content' :  {
                        'source':  b64data, 
-                       'filename': self.getFilename(),
+                       'filename': self.getRelToTmpDirName(),
                        'outdir': self.args.outdir, 
                        'partnum': self.args.mcu
                        }

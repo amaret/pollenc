@@ -1,0 +1,5 @@
+#export PATH=$PATH:$HOME/git/amaret/downloader/dnldr
+export PATH=$PATH:../../../downloader/dnldr
+
+../../../pollenc -t abcdefghijkl -c avr_gcc -m atmega328p -i ../testbundle -o ./blink-out ../testbundle/basic/BlinkAvr.p -l arduino -s /dev/ttyACM0 -b 115200 --host localhost
+
