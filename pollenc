@@ -198,6 +198,8 @@ class Pollenc:
                        'partnum': self.args.mcu
                        }
                    }
+        if self.args.pollenEnv:
+            jsonobj['content']['pollenEnv'] = self.args.pollenEnv
         if self.args.buildpollen:
             jsonobj['content']['bundlenames'] = self.args.includes
         jsonobj['content']['getbuild'] = self.args.getbuild
@@ -212,6 +214,7 @@ class Pollenc:
             jsonobj['content']['setldflags'] = self.args.setldflags
         
         jsonstr = json.dumps(jsonobj)
+        #print 'sending json:\n' + jsonstr + '\n'
         self.write(jsonstr)
 
     def run(self):
@@ -376,6 +379,9 @@ if __name__ == "__main__":
 
     parser.add_argument('-m', '--mcu',  
             dest='mcu', action='store', help='mcu', required=True)
+
+    parser.add_argument('-e', '--environment', 
+            dest='pollenEnv', action='store', help='Pollen environment', required=False)
 
     parser.add_argument('-c', '--compiler', 
             dest='buildcc', action='store', help='build environment', required=True)
