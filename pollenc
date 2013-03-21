@@ -195,7 +195,6 @@ class Pollenc:
                    'content' :  {
                        'source':  b64data, 
                        'filename': self.getRelToTmpDirName(),
-                       'outdir': './out',
                        'partnum': self.args.mcu
                        }
                    }
