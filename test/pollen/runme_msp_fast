@@ -1,0 +1,5 @@
+#export PATH=$PATH:$HOME/git/amaret/downloader/dnldr
+export PATH=$PATH:../../../downloader/dnldr
+
+../../pollenc -t abcdefgh -c msp430_gcc -m msp430g2452 -i ./bundles/core -i ./testbundle -o ./blink-out ./testbundle/blink.msp430/BlinkFastMsp430.p -l fet --host passage.wind.io
+
