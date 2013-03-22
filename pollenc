@@ -30,7 +30,17 @@ def rmdir(d):
 
 class Pollenc:
 
+    def getVerbose(self):
+        if self.args.vvverbose == True:
+            return 3
+        if self.args.vverbose == True:
+            return 2
+        if self.args.verbose == True:
+            return 1
+        return 0
+
     def __init__ (self, args):
+        self.bundleNames = []
         self.args = args
         self.workname = 'pollenc' + str(os.getpid()) + '_' + str(random.randint(1, 10000))
         self.workzip = '/tmp/' + self.workname + '_src.zip'
@@ -89,9 +99,10 @@ class Pollenc:
         for root, dirs, files in os.walk('.'):
             for file in files:
                 if self.filenameOk(file):
-                    namelist += file + ' '
+                    namelist += root + '/'+ file + ' '
                     zip.write(os.path.join(root, file))
-        print('preparing %s' % (namelist))
+        if self.getVerbose() > 0:
+            print('preparing %s' % (namelist))
         os.chdir(origpath)
 
 
@@ -116,23 +127,20 @@ class Pollenc:
 
     def makePollenZip(self):
         zip = zipfile.ZipFile(self.workzip, 'w')
-        ptmp = []
         if self.args.includes == None:
             raise Exception('-i required')
-        else:
-            for d in self.args.includes:
-                ptmp.append(d)
 
         tmpdir = '/tmp/' + self.workname
-        for src in ptmp:
+        for src in self.args.includes:
             if not os.path.exists(src):
+                self.bundleNames.append(src)
                 continue #system bundle
             rmdir(tmpdir)
-            #if src != '.':
-            #    os.mkdir(tmpdir)
             bundleName = self.getBundleName(src)
+            self.bundleNames.append(bundleName)
             shutil.copytree(src, tmpdir + '/' + bundleName)
             self.zipdir(tmpdir, zip)
+        
         zip.close()
         rmdir(tmpdir)
 
@@ -201,9 +209,10 @@ class Pollenc:
         if self.args.pollenEnv:
             jsonobj['content']['pollenEnv'] = self.args.pollenEnv
         if self.args.buildpollen:
-            jsonobj['content']['bundlenames'] = self.args.includes
+            #jsonobj['content']['bundlenames'] = self.args.includes
+            jsonobj['content']['bundlenames'] = self.bundleNames
         jsonobj['content']['getbuild'] = self.args.getbuild
-        jsonobj['content']['debug'] = self.args.debug
+        jsonobj['content']['verbose'] = self.getVerbose()
         jsonobj['content']['translateonly'] = self.args.translateonly
         if self.args.cflags != None:
             jsonobj['content']['cflags'] = self.args.cflags
@@ -337,8 +346,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-d', '--debug', 
-            dest='debug', action='store_true', help='debug')
+    parser.add_argument('-v', '--verbose', 
+            dest='verbose', action='store_true', help='verbose')
+
+    parser.add_argument('-vv', '--vverbose', 
+            dest='vverbose', action='store_true', help='very verbose')
+
+    parser.add_argument('-vvv', '--vvverbose', 
+            dest='vvverbose', action='store_true', help='very very verbose')
 
     parser.add_argument('--build-c', 
             dest='buildc', action='store_true', help='build c')
