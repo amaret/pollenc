@@ -203,6 +203,7 @@ class Pollenc:
         if self.args.buildpollen:
             jsonobj['content']['bundlenames'] = self.args.includes
         jsonobj['content']['getbuild'] = self.args.getbuild
+        jsonobj['content']['debug'] = self.args.debug
         jsonobj['content']['translateonly'] = self.args.translateonly
         if self.args.cflags != None:
             jsonobj['content']['cflags'] = self.args.cflags
