@@ -137,6 +137,8 @@ class Pollenc:
                 continue #system bundle
             rmdir(tmpdir)
             bundleName = self.getBundleName(src)
+            if bundleName in self.bundleNames:
+                continue #dupe -i
             self.bundleNames.append(bundleName)
             shutil.copytree(src, tmpdir + '/' + bundleName)
             self.zipdir(tmpdir, zip)
