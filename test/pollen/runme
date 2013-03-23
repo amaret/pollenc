@@ -1,5 +1,6 @@
 #export PATH=$PATH:$HOME/git/amaret/downloader/dnldr
 export PATH=$PATH:../../../downloader/dnldr
 
-../../pollenc -t T0BSEEFH -c avr_gcc -m atmega328p -i ./bundles/core -i ./testbundle -o blink-out ./testbundle/blink.avr/Blink0.p -l arduino -s /dev/ttyACM0 -b 115200 --host passage.wind.io
+#../../pollenc -t T0BSEEFH -c avr_gcc -m atmega328p -i ./bundles/core -i ./testbundle -o blink-out ./testbundle/blink.avr/Blink0.p -l arduino -s /dev/ttyACM0 -b 115200 --host passage.wind.io
+../../pollenc --translate-only -t T0BSEEFH -i ./bundles/core -i ./testbundle -o blink-out ./testbundle/blink.avr/Blink0.p -l arduino -s /dev/ttyACM0 -b 115200 --host passage.wind.io
 

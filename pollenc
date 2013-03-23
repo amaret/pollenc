@@ -185,7 +185,9 @@ class Pollenc:
             sys.exit()     
 
         tid = hashlib.sha1(str(time.time()) + '-' + self.args.token).hexdigest()
-        jsonobj = {'compiler': ('pollen_' if self.args.buildpollen else '') + self.args.buildcc.lower(), 
+        jsonobj = {
+                   'compiler': ('pollen_' if self.args.buildpollen else '') + 
+                        ('any' if self.args.translateonly else self.args.buildcc.lower()), 
                    'tid': tid,
                    'aid': '%s-%s' % (self.args.token, tid),
                    'reply': 'dummy', 
@@ -209,7 +211,6 @@ class Pollenc:
         if self.args.pollenEnv:
             jsonobj['content']['pollenEnv'] = self.args.pollenEnv
         if self.args.buildpollen:
-            #jsonobj['content']['bundlenames'] = self.args.includes
             jsonobj['content']['bundlenames'] = self.bundleNames
         jsonobj['content']['getbuild'] = self.args.getbuild
         jsonobj['content']['verbose'] = self.getVerbose()
@@ -394,13 +395,13 @@ if __name__ == "__main__":
             dest='setldflags', action='store', help='ldflags')
 
     parser.add_argument('-m', '--mcu',  
-            dest='mcu', action='store', help='mcu', required=True)
+            dest='mcu', action='store', help='mcu', required=False)
 
     parser.add_argument('-e', '--environment', 
             dest='pollenEnv', action='store', help='Pollen environment', required=False)
 
     parser.add_argument('-c', '--compiler', 
-            dest='buildcc', action='store', help='build environment', required=True)
+            dest='buildcc', action='store', help='build environment', required=False)
 
     parser.add_argument('-t', '--token', 
             dest='token', action='store', help='user credential', required=True)
@@ -419,6 +420,16 @@ if __name__ == "__main__":
     # there is a problem tunneling - char in argparse
         
     args = parser.parse_args()
+
+    if args.translateonly:
+        args.getbuild = True
+    if not args.translateonly:
+        if args.buildcc == None:
+            print('no --compiler (-c) specified')
+            sys.exit(0)
+        if args.mcu == None:
+            print('no --mcu (-m) specified')
+            sys.exit(0)
 
     if args.filename == None:
         print('no filename specified')

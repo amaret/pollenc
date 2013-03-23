@@ -61,6 +61,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             return 'CLC_AVR_GCC_1_0'
         if compiler == 'arduino':
             return 'CLC_ARDUINO_1_0'
+        if compiler == 'pollen_any':   #for translateonly
+            return 'CLC_POLLEN_AVR_GCC_1_0'
 
         raise Exception('PollenServer: unsupported compiler: %s' % (compiler))
 
