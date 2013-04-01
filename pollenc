@@ -15,6 +15,7 @@ import random
 import socket
 import time
 import hashlib
+import glob
 
 def rmfile(f):
     try:
@@ -125,13 +126,14 @@ class Pollenc:
             rmdir(tmpdir)
         zip.close()
 
-    def makePollenZip(self):
-        zip = zipfile.ZipFile(self.workzip, 'w')
-        if self.args.includes == None:
-            raise Exception('-i required')
-
+    def zipBundles(self, zip, paths):
         tmpdir = '/tmp/' + self.workname
-        for src in self.args.includes:
+        for src in paths:
+            if src.find('*')!=-1 or src.find('?')!=-1:
+                wildcardLst = glob.glob(src)
+                if len(wildcardLst) > 0:
+                    self.zipBundles(zip, wildcardLst) #recurse for wildcard
+                    continue
             if not os.path.exists(src):
                 self.bundleNames.append(src)
                 continue #system bundle
@@ -142,9 +144,16 @@ class Pollenc:
             self.bundleNames.append(bundleName)
             shutil.copytree(src, tmpdir + '/' + bundleName)
             self.zipdir(tmpdir, zip)
+            rmdir(tmpdir)
+
+    def makePollenZip(self):
+        zip = zipfile.ZipFile(self.workzip, 'w')
+        if self.args.includes == None:
+            raise Exception('-i required')
+
+        self.zipBundles(zip, self.args.includes)
         
         zip.close()
-        rmdir(tmpdir)
 
     def getRelToTmpDirName(self):
         abspath = os.path.abspath(self.args.filename)
