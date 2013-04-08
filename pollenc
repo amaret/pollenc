@@ -353,6 +353,76 @@ def pipeCmd(command):
         print("Error! %s" % (str(e)))
         raise e;
 
+def readWindAppCfg():
+    if args.wconfig != None:
+        if args.verbose == True:
+            print('Wind App config %s specified' % (args.wconfig))
+        sfile = os.path.abspath(__file__)
+        (cpath, m) = os.path.split(sfile)
+
+        cfile = cpath + '/' + 'wind_config.json'
+        if not os.path.exists(cfile):
+            print('Wind App config file not found')
+            sys.exit(0)
+
+        json_data=open(cfile).read()
+        data = json.loads(json_data)
+        if not data or 'configurations' not in data.keys():
+            print('can not read Wind App config')
+            sys.exit(0)
+
+        if 'host' in data:
+            args.host = data['host'];
+        if 'port' in data:
+            args.port = data['port'];
+        if 'token' in data:
+            args.token = data['token'];
+
+        configs = data['configurations']
+        if args.wconfig not in configs.keys():
+            print('can not find Wind App config %s' % (args.wconfig))
+            sys.exit(0)
+        config = data['configurations'][args.wconfig]
+        if 'verbose' in config:
+            args.verbose = True;
+        if 'vverbose' in config:
+            args.verbose = True;
+            args.vverbose = True;
+        if 'vvverbose' in config:
+            args.verbose = True;
+            args.vverbose = True;
+            args.vvverbose = True;
+        if 'buildc' in config:
+            args.buildc = True;
+        if 'translateonly' in config:
+            args.translateonly = True;
+        if 'getbuild' in config:
+            args.getbuild = True;
+        if 'loader' in config:
+            args.loader = config['loader'];
+        if 'baud' in config:
+            args.baud = config['baud'];
+        if 'serial' in config:
+            args.serial = config['serial'];
+        if 'cflags' in config:
+            args.cflags = config['cflags'];
+        if 'setcflags' in config:
+            args.setcflags = config['setcflags'];
+        if 'ldflags' in config:
+            args.ldflags = config['ldflags'];
+        if 'setldflags' in config:
+            args.setldflags = config['setldflags'];
+        if 'mcu' in config:
+            args.mcu = config['mcu'];
+        if 'pollenEnv' in config:
+            args.pollenEnv = config['pollenEnv'];
+        if 'buildcc' in config:
+            args.buildcc = config['buildcc'];
+        if 'outdir' in config:
+            args.outdir = config['outdir'];
+        if 'includes' in config:
+            args.includes = config['includes'];
+
 
 if __name__ == "__main__":
 
@@ -412,10 +482,13 @@ if __name__ == "__main__":
             dest='pollenEnv', action='store', help='Pollen environment', required=False)
 
     parser.add_argument('-c', '--compiler', 
-            dest='buildcc', action='store', help='build environment', required=False)
+            dest='buildcc', action='store', help='compiler environment', required=False)
 
     parser.add_argument('-t', '--token', 
-            dest='token', action='store', help='user credential', required=True)
+            dest='token', action='store', help='user credential', required=False)
+
+    parser.add_argument('--config', 
+            dest='wconfig', action='store', help='Wind App config name', required=False)
 
     parser.add_argument('-o', '--out', 
             dest='outdir', action='store', help='output dir', default='./build')
@@ -431,6 +504,14 @@ if __name__ == "__main__":
     # there is a problem tunneling - char in argparse
         
     args = parser.parse_args()
+
+    if args.vverbose == True:
+        args.verbose = True;
+    if args.vvverbose == True:
+        args.verbose = True;
+        args.vverbose = True;
+
+    readWindAppCfg()
 
     if args.translateonly:
         args.getbuild = True
