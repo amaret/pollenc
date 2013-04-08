@@ -362,8 +362,14 @@ def readWindAppCfg():
 
         cfile = cpath + '/' + 'wind_config.json'
         if not os.path.exists(cfile):
-            print('Wind App config file not found')
-            sys.exit(0)
+            if not 'WIND_HOME' in os.environ:
+                print('Wind App home dir not found')
+                sys.exit(0)
+            whome = os.environ['WIND_HOME']
+            cfile = whome + '/' + 'wind_config.json'
+            if not os.path.exists(cfile):
+                print('Wind App config file not found')
+                sys.exit(0)
 
         json_data=open(cfile).read()
         data = json.loads(json_data)
