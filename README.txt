@@ -1,8 +1,8 @@
-pollenc.py (will be renaemd pollenc) is commandline util to invoke
+pollenc is a commandline utility to invoke the
 clound compiler for pollen and c microcontroller toolchains
 
-PollenServer.py is the server that talk to redis on behalf of the pollenc
-client.
+PollenServer.py is the server that talks to redis on behalf 
+of the pollenc client
 
-upstart files manage service
+upstart files manage services
 
