@@ -6,7 +6,7 @@ import sys
 import subprocess
 import shutil
 import shlex
-import argparse
+import argparse #cmdline overrides configrgs
 import json
 import zipfile
 import os
@@ -241,30 +241,32 @@ class Pollenc:
 
     def run(self):
 
-        self.makezip()
-        self.sendzip()
+        if self.args.runCompile:
+            self.makezip()
+            self.sendzip()
 
-        while True:
-            r = self.read()
-            workobj = json.loads(r)
-            if workobj['type'] != 'response':
-                print ('%s' % (workobj['content']['content']))
-                continue
-            if workobj['content']['error'] != 'None':
-                print ('error! %s' % (workobj['content']['error']))
-                return
-            break
-        
-        rmfile(self.workzip)
+            while True:
+                r = self.read()
+                workobj = json.loads(r)
+                if workobj['type'] != 'response':
+                    print ('%s' % (workobj['content']['content']))
+                    continue
+                if workobj['content']['error'] != 'None':
+                    print ('error! %s' % (workobj['content']['error']))
+                    return
+                break
+            
+            rmfile(self.workzip)
 
-        b64 = workobj['content']['content']
-        zipbytes = base64.b64decode(b64)
-        origpath = os.getcwd()
-        os.chdir(self.args.outdir)
-        unzip(zipbytes)
-        os.chdir(origpath)
-        self.printStdErr() #look for stderr and play msgs
-        if self.args.loader != None:
+            b64 = workobj['content']['content']
+            zipbytes = base64.b64decode(b64)
+            origpath = os.getcwd()
+            os.chdir(self.args.outdir)
+            unzip(zipbytes)
+            os.chdir(origpath)
+            self.printStdErr() #look for stderr and play msgs
+
+        if self.args.loader != None and self.args.runDownloader:
             print "Loading hex...",
             self.loadHex()
             print "done."
@@ -320,7 +322,7 @@ class Pollenc:
         if self.args.serial != None:
             cmd += ' -s ' + self.args.serial
         if self.args.baud != None:
-            cmd += ' -b ' + self.args.baud
+            cmd += ' -b ' + str(self.args.baud)
         if self.args.loader != None:
             cmd += ' -p ' + self.args.loader
         cmd += ' -c flash:w:' + self.getHexName()
@@ -353,7 +355,7 @@ def pipeCmd(command):
         print("Error! %s" % (str(e)))
         raise e;
 
-def readWindAppCfg():
+def readWindAppCfg(args):
     if args.wconfig != None:
         if args.verbose == True:
             print('Wind App config %s specified' % (args.wconfig))
@@ -377,6 +379,13 @@ def readWindAppCfg():
             print('can not read Wind App config')
             sys.exit(0)
 
+        #################################################
+        ### this is insane, should be able to blindly ###
+        ### copy the contends of data to args if args ###
+        ### don't have the field.  dot notation breaks ##
+        ### with dict merge... todo: ejs              ###
+        #################################################
+
         if 'host' in data:
             args.host = data['host'];
         if 'port' in data:
@@ -389,6 +398,8 @@ def readWindAppCfg():
             print('can not find Wind App config %s' % (args.wconfig))
             sys.exit(0)
         config = data['configurations'][args.wconfig]
+        if 'verbose' in config:
+            args.filename = config['filename'];
         if 'verbose' in config:
             args.verbose = True;
         if 'vverbose' in config:
@@ -428,11 +439,23 @@ def readWindAppCfg():
             args.outdir = config['outdir'];
         if 'includes' in config:
             args.includes = config['includes'];
+        if 'filename' in config:
+            args.filename = config['filename'];
+        (p, m) = os.path.split(args.filename)
+        (bname, p) = os.path.split(p)
+        args.includes = []
+        args.includes.append(bname)
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+
+    parser.add_argument('--download', 
+            dest='runDownloader', action='store_true', help='invoke the downloader')
+
+    parser.add_argument('--compile', 
+            dest='runCompile', action='store_true', help='not invoke the compiler')
 
     parser.add_argument('-v', '--verbose', 
             dest='verbose', action='store_true', help='verbose')
@@ -511,13 +534,17 @@ if __name__ == "__main__":
         
     args = parser.parse_args()
 
+    if args.runCompile == False and args.runDownloader == False: # 2 wrongs make a right :(
+        args.runCompile = True
+        args.runDownloader = True
+
     if args.vverbose == True:
         args.verbose = True;
     if args.vvverbose == True:
         args.verbose = True;
         args.vverbose = True;
 
-    readWindAppCfg()
+    readWindAppCfg(args)
 
     if args.translateonly:
         args.getbuild = True
@@ -529,6 +556,9 @@ if __name__ == "__main__":
             print('no --mcu (-m) specified')
             sys.exit(0)
 
+    if args.host == None:
+        args.host = ""
+
     if args.filename == None:
         print('no filename specified')
         sys.exit(0)
@@ -539,9 +569,10 @@ if __name__ == "__main__":
         args.buildpollen = True
         args.buildc == False
     
-    if os.path.exists(args.outdir):
+    if os.path.exists(args.outdir) and args.runCompile:
         rmdir(args.outdir)
-    os.mkdir(args.outdir)
+    if args.runCompile:
+        os.mkdir(args.outdir)
 
     Pollenc(args).run() 
 
