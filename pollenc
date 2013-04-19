@@ -317,8 +317,12 @@ class Pollenc:
 
     def loadHex(self):
        
+        sfile = os.path.abspath(__file__)
+        (cpath, m) = os.path.split(sfile)
+
+        pgmname = cpath + '/' + 'downloader'
         cmd = []
-        cmd.append('downloader')
+        cmd.append(pgmname)
         if self.args.mcu != None:
             cmd.append('-t')
             cmd.append(self.args.mcu)
