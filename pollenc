@@ -346,7 +346,7 @@ def unzip (src):
 def pipeCmd(c):
 
     print("trying to run cmd: %s" % (c))
-    command = shlex.split(c)
+    command = shlex.split(c, posix=True)
     #command = filter(None, cmdlist)
     for l in command:
         print("wtf %s" % (l))
