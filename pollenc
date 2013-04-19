@@ -441,10 +441,14 @@ def readWindAppCfg(args):
             args.includes = config['includes'];
         if 'filename' in config:
             args.filename = config['filename'];
+        if 'bundles' in config:
+            args.includes = config['bundles'];
         (p, m) = os.path.split(args.filename)
         (bname, p) = os.path.split(p)
-        args.includes = []
-        args.includes.append(bname)
+        if args.includes == None:
+            args.includes = []
+        if bname not in args.includes:
+            args.includes.append(bname)
 
 
 if __name__ == "__main__":
