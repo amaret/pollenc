@@ -317,35 +317,21 @@ class Pollenc:
 
     def loadHex(self):
        
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
-        #fix by making a fucking list and not run shlex.split 
         cmd = []
         cmd.append('downloader')
-        #cmd = 'downloader'
         if self.args.mcu != None:
-            #    cmd += ' -t ' + self.args.mcu
             cmd.append('-t')
             cmd.append(self.args.mcu)
         if self.args.serial != None:
-            #    cmd += ' -s ' + self.args.serial
             cmd.append('-s')
             cmd.append(self.args.serial)
         if self.args.baud != None:
-            #    cmd += ' -b ' + str(self.args.baud)
             cmd.append('-b')
             cmd.append(str(self.args.baud))
         if self.args.loader != None:
-            #    cmd += ' -p ' + self.args.loader
             cmd.append('-p')
             cmd.append(self.args.loader)
 
-        #cmd += ' -c flash:w:\'' + self.getHexName() + '\''
         cmd.append('-c')
         cmd.append('flash:w:' + self.getHexName())
 
@@ -366,19 +352,9 @@ def unzip (src):
 
 def pipeCmd(command):
 
-    #fails from in prog:
-    #downloader -t msp430g2452 -p fet -c flash:w:/tmp/build/blink.msp430/BlinkMsp430/BlinkMsp430-prog.hex
-    #works pollenc cmd:
-    #downloader -t msp430g2452 -p fet -c flash:w:./blink-out/blink.msp430/BlinkFastMsp430/BlinkFastMsp430-prog.hex
-
-    #print("trying to run cmd: %s" % (c))
-    #command = shlex.split(c)
-    for l in command:
-        print("cmd piece: %s" % (l))
     commandOut = ""
     commandErr = ""
     try:
-        #process = subprocess.Popen(shlex.split(command), bufsize=4096, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process = subprocess.Popen(command, bufsize=4096, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (commandOut, commandErr) = process.communicate()
         process.wait()
