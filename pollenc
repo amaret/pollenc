@@ -343,20 +343,18 @@ def unzip (src):
     except Exception, e:
         print("argh! %s" % (e))
 
-_split = re.compile(r'[\0%s]' % re.escape(''.join([''])))
-#[os.path.sep, os.path.altsep or ''])))
-
-def secure_filename(path):
-    return _split.sub('', path)
-
 def pipeCmd(c):
 
-    command = secure_filename(c)
-    print("trying to run cmd: %s" % (command))
+    print("trying to run cmd: %s" % (c))
+    command = shlex.split(c)
+    #command = filter(None, cmdlist)
+    for l in command:
+        print("wtf %s" % (l))
     commandOut = ""
     commandErr = ""
     try:
-        process = subprocess.Popen(shlex.split(command), bufsize=4096, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #process = subprocess.Popen(shlex.split(command), bufsize=4096, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, bufsize=4096, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (commandOut, commandErr) = process.communicate()
         process.wait()
     except Exception, e:
@@ -407,8 +405,6 @@ def readWindAppCfg(args):
             sys.exit(0)
         config = data['configurations'][args.wconfig]
         if 'verbose' in config:
-            args.filename = config['filename'];
-        if 'verbose' in config:
             args.verbose = True;
         if 'vverbose' in config:
             args.verbose = True;
@@ -424,11 +420,11 @@ def readWindAppCfg(args):
         if 'getbuild' in config:
             args.getbuild = True;
         if 'loader' in config:
-            args.loader = config['loader'];
+            args.loader = config['loader'].strip();
         if 'baud' in config:
-            args.baud = config['baud'];
+            args.baud = config['baud'].strip();
         if 'serial' in config:
-            args.serial = config['serial'];
+            args.serial = config['serial'].strip();
         if 'cflags' in config:
             args.cflags = config['cflags'];
         if 'setcflags' in config:
@@ -438,17 +434,17 @@ def readWindAppCfg(args):
         if 'setldflags' in config:
             args.setldflags = config['setldflags'];
         if 'mcu' in config:
-            args.mcu = config['mcu'];
+            args.mcu = config['mcu'].strip();
         if 'pollenEnv' in config:
-            args.pollenEnv = config['pollenEnv'];
+            args.pollenEnv = config['pollenEnv'].strip();
         if 'buildcc' in config:
-            args.buildcc = config['buildcc'];
+            args.buildcc = config['buildcc'].strip();
         if 'outdir' in config:
-            args.outdir = config['outdir'];
+            args.outdir = config['outdir'].strip();
         if 'includes' in config:
             args.includes = config['includes'];
         if 'filename' in config:
-            args.filename = config['filename'];
+            args.filename = config['filename'].strip();
         if 'bundles' in config:
             args.includes = config['bundles'];
         (p, m) = os.path.split(args.filename)
