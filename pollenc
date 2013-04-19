@@ -352,6 +352,8 @@ def unzip (src):
 
 def pipeCmd(command):
 
+    if args.vverbose:
+        print("running cmd: %s" % (str(command)))
     commandOut = ""
     commandErr = ""
     try:
