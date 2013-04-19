@@ -316,7 +316,15 @@ class Pollenc:
         return os.path.splitext(self.getFilename())[0]
 
     def loadHex(self):
-        
+       
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
+        #fix by making a fucking list and not run shlex.split 
         cmd = 'downloader'
         if self.args.mcu != None:
             cmd += ' -t ' + self.args.mcu
@@ -343,17 +351,15 @@ def unzip (src):
     except Exception, e:
         print("argh! %s" % (e))
 
-def pipeCmd(c):
+def pipeCmd(command):
 
     #fails from in prog:
     #downloader -t msp430g2452 -p fet -c flash:w:/tmp/build/blink.msp430/BlinkMsp430/BlinkMsp430-prog.hex
     #works pollenc cmd:
     #downloader -t msp430g2452 -p fet -c flash:w:./blink-out/blink.msp430/BlinkFastMsp430/BlinkFastMsp430-prog.hex
 
-    print("trying to run cmd: %s" % (c))
-    #command = shlex.split(c, posix=True)
-    command = shlex.split(c)
-    #command = filter(None, cmdlist)
+    #print("trying to run cmd: %s" % (c))
+    #command = shlex.split(c)
     for l in command:
         print("cmd piece: %s" % (l))
     commandOut = ""
