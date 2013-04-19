@@ -325,16 +325,29 @@ class Pollenc:
         #fix by making a fucking list and not run shlex.split 
         #fix by making a fucking list and not run shlex.split 
         #fix by making a fucking list and not run shlex.split 
-        cmd = 'downloader'
+        cmd = []
+        cmd.append('downloader')
+        #cmd = 'downloader'
         if self.args.mcu != None:
-            cmd += ' -t ' + self.args.mcu
+            #    cmd += ' -t ' + self.args.mcu
+            cmd.append('-t')
+            cmd.append(self.args.mcu)
         if self.args.serial != None:
-            cmd += ' -s ' + self.args.serial
+            #    cmd += ' -s ' + self.args.serial
+            cmd.append('-s')
+            cmd.append(self.args.serial)
         if self.args.baud != None:
-            cmd += ' -b ' + str(self.args.baud)
+            #    cmd += ' -b ' + str(self.args.baud)
+            cmd.append('-b')
+            cmd.append(str(self.args.baud))
         if self.args.loader != None:
-            cmd += ' -p ' + self.args.loader
-        cmd += ' -c flash:w:\'' + self.getHexName() + '\''
+            #    cmd += ' -p ' + self.args.loader
+            cmd.append('-p')
+            cmd.append(self.args.loader)
+
+        #cmd += ' -c flash:w:\'' + self.getHexName() + '\''
+        cmd.append('-c')
+        cmd.append('flash:w:' + self.getHexName())
 
         pipeCmd(cmd)
 
@@ -434,7 +447,7 @@ def readWindAppCfg(args):
         if 'loader' in config:
             args.loader = config['loader'].strip();
         if 'baud' in config:
-            args.baud = config['baud'].strip();
+            args.baud = config['baud'];
         if 'serial' in config:
             args.serial = config['serial'].strip();
         if 'cflags' in config:
