@@ -2,6 +2,7 @@
 
 # Copyright 2012, 2013 Amaret Inc. All rights reserved.
 
+import re
 import sys
 import subprocess
 import shutil
@@ -342,8 +343,15 @@ def unzip (src):
     except Exception, e:
         print("argh! %s" % (e))
 
-def pipeCmd(command):
+_split = re.compile(r'[\0%s]' % re.escape(''.join([''])))
+#[os.path.sep, os.path.altsep or ''])))
 
+def secure_filename(path):
+    return _split.sub('', path)
+
+def pipeCmd(c):
+
+    command = secure_filename(c)
     print("trying to run cmd: %s" % (command))
     commandOut = ""
     commandErr = ""
