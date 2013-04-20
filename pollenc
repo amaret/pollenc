@@ -444,8 +444,10 @@ def readWindAppCfg(args):
             args.mcu = config['mcu'].strip();
         if 'pollenEnv' in config:
             args.pollenEnv = config['pollenEnv'].strip();
-        if 'buildcc' in config:
-            args.buildcc = config['buildcc'].strip();
+        #if 'buildcc' in config:
+            #args.buildcc = config['buildcc'].strip();
+        if 'buildenv' in config:
+            args.buildcc = config['buildenv'].strip();
         if 'outdir' in config:
             args.outdir = config['outdir'].strip();
         if 'includes' in config:
