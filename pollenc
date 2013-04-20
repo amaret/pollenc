@@ -497,6 +497,9 @@ if __name__ == "__main__":
             action='store_true', 
             help='no compile, return pollen generate files')
 
+    parser.add_argument('--hasFtd2xx', 
+            dest='hasFtd2xx', action='store_true', help='ftd2xx drivers are installed')
+
     parser.add_argument('--get-build', 
             dest='getbuild', action='store_true', help='return all build files')
 
