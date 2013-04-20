@@ -268,9 +268,7 @@ class Pollenc:
             self.printStdErr() #look for stderr and play msgs
 
         if self.args.loader != None and self.args.runDownloader:
-            print "Loading hex...",
             self.loadHex()
-            print "done."
 
     def getModulePath(self):
         pkg = self.getPackageName()
@@ -298,6 +296,13 @@ class Pollenc:
                     with open(root + '/' + f, 'r') as fin:
                         print fin.read()
 
+    def hexNameExists(self):
+        for root, dirs, files in os.walk(self.args.outdir):
+            for file in files:
+                if file.endswith('.hex'):
+                    return True
+        return False
+
     def findHexName(self):
         for root, dirs, files in os.walk(self.args.outdir):
             for file in files:
@@ -316,7 +321,12 @@ class Pollenc:
         return os.path.splitext(self.getFilename())[0]
 
     def loadHex(self):
+
+        if not self.hexNameExists():
+            print("no hex name generated")
+            return
        
+        print "Loading hex...",
         sfile = os.path.abspath(__file__)
         (cpath, m) = os.path.split(sfile)
 
@@ -344,6 +354,7 @@ class Pollenc:
         cmd.append('flash:w:' + self.getHexName())
 
         pipeCmd(cmd)
+        print "done."
 
 
 def unzip (src):
