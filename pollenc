@@ -320,7 +320,11 @@ class Pollenc:
         sfile = os.path.abspath(__file__)
         (cpath, m) = os.path.split(sfile)
 
-        pgmname = cpath + '/' + 'downloader'
+        pgmname = cpath + '/'
+        if self.args.hasFtd2xx:
+            pgmname = pgmname + 'downloader_ftd2xx'
+        else:
+            pgmname = pgmname + 'downloader'
         cmd = []
         cmd.append(pgmname)
         if self.args.mcu != None:
@@ -405,6 +409,8 @@ def readWindAppCfg(args):
             args.port = int(data['port']);
         if 'token' in data:
             args.token = data['token'];
+        if 'hasFtd2xx' in data:
+            args.hasFtd2xx = data['hasFtd2xx'];
 
         configs = data['configurations']
         if args.wconfig not in configs.keys():
