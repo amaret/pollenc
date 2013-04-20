@@ -402,7 +402,7 @@ def readWindAppCfg(args):
         if 'host' in data:
             args.host = data['host'];
         if 'port' in data:
-            args.port = data['port'];
+            args.port = int(data['port']);
         if 'token' in data:
             args.token = data['token'];
 
