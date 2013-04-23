@@ -3,6 +3,8 @@
 # Copyright 2012, 2013 Amaret Inc. All rights reserved.
 
 import sys
+import datetime
+import bernhard
 import os
 sys.path.append(sys.path[0] + os.sep + '..' + os.sep + 'wind.lib')
 
@@ -16,8 +18,9 @@ import redis
 import syslog
 import json
 import traceback
-import base64
 import WindData
+
+rmmonitor = bernhard.Client(host=config.riemann['host'])
 
 MAX_MSG_SIZE = 1000000
 
@@ -94,6 +97,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         #return token == 'rustyisacowboy'
     
     def handle(self):
+        starttime = datetime.datetime.now()
         try:
             syslog.syslog(syslog.LOG_DEBUG, 'handler invoked')
             hlen = 0
@@ -158,9 +162,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 dataobj = json.loads(response)
                 if dataobj['type'] != 'response':
                     continue
-                tobj = dataobj
-                tbytes = tobj['content']['content']
-                base64.b64decode(tbytes)
+                #tobj = dataobj
+                #tbytes = tobj['content']['content']
+                #base64.b64decode(tbytes)
 
                 break
         except Exception, e:
@@ -171,6 +175,15 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             etxt = 'pollenc exception %s (%s)' % (e.__class__, e)
             self.handleError(etxt)
         
+        stoptime = datetime.datetime.now()
+        dur = stoptime - starttime
+        mdur = dur.microseconds
+        state = 'ok'
+        if mdur > 1000000:
+            state = 'warning'
+       
+        rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc', 'metric': mdur, 'description': 'pollenc txn duration in microsecs', 'state': state})
+
         return
 
     def logexception(self, includetraceback = 0):
@@ -196,7 +209,6 @@ if __name__ == '__main__':
 
     syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % (config.redis['host'], config.redis['port']))
     
-    #address = ('0.0.0.0', 2323)
     address = (config.pollenc['interface'], config.pollenc['port'])
     server = PollencServer(address, PollencRequestHandler)
 
