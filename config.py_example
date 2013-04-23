@@ -16,3 +16,8 @@ pollenc = {
   'port': 2323,
 }
 
+riemann = {
+  'host': 'redbis.wind.io',
+  'clienthost': 'passage.wind.io'
+}
+
