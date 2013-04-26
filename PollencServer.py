@@ -178,6 +178,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         stoptime = datetime.datetime.now()
         dur = stoptime - starttime
         mdur = dur.microseconds
+        if mdur > 0:
+            mdur = mdur / 1000 # we only care about milliseconds
         state = 'ok'
         if mdur > 1000000:
             state = 'warning'
