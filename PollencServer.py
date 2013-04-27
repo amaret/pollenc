@@ -184,7 +184,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         if mdur > 1000000:
             state = 'warning'
        
-        rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc txn dur', 'metric': mdur, 'description': 'pollenc txn duration in milliseconds', 'state': state})
+        rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc-txn-dur', 'metric': mdur, 'description': 'pollenc txn duration in milliseconds', 'state': state})
 
         return
 
