@@ -174,18 +174,24 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             self.logexception(1)
             etxt = 'pollenc exception %s (%s)' % (e.__class__, e)
             self.handleError(etxt)
-        
+   
+        self.sendStats(starttime)     
+
+        return
+
+    def sendStats(self, starttime):
         stoptime = datetime.datetime.now()
         dur = stoptime - starttime
         mdur = dur.microseconds
         if mdur > 0:
             mdur = mdur / 1000 # we only care about milliseconds
         state = 'ok'
-        if mdur > 1000000:
+        if mdur > 1000:
             state = 'warning'
+        elif mdur > 10000:
+            state = 'critical'
        
         rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc txn-dur', 'metric': mdur, 'description': 'pollenc txn duration in milliseconds', 'state': state})
-
         return
 
     def logexception(self, includetraceback = 0):
