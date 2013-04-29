@@ -80,6 +80,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def handleError(self, etxt):
         syslog.syslog(syslog.LOG_ERR, etxt)
+        self.sendErrorStats()     
         ERROR_MSG_OBJ['content']['error'] = etxt
         emsgtxt = json.dumps(ERROR_MSG_OBJ)
         hmsg = "%i\n%s" % (len(emsgtxt), emsgtxt)
@@ -167,6 +168,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 #base64.b64decode(tbytes)
 
                 break
+            self.sendStats(starttime)     
         except Exception, e:
             self.handleError(str(e))
         except:
@@ -174,9 +176,13 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             self.logexception(1)
             etxt = 'pollenc exception %s (%s)' % (e.__class__, e)
             self.handleError(etxt)
-   
-        self.sendStats(starttime)     
 
+        return
+
+    def sendErrorStats(self):
+        state = 'warning'
+
+        rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc exception', 'metric': 1, 'description': 'pollenc txn failed', 'state': state})
         return
 
     def sendStats(self, starttime):
@@ -185,6 +191,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         mdur = dur.microseconds
         if mdur > 0:
             mdur = mdur / 1000 # we only care about milliseconds
+        else:
+            raise Exception('PollenServer: impossible duration %s' % (mdur))
         state = 'ok'
         if mdur > 1000:
             state = 'warning'
