@@ -4,7 +4,6 @@
 
 import sys
 import datetime
-import bernhard
 import os
 sys.path.append(sys.path[0] + os.sep + '..' + os.sep + 'wind.lib')
 
@@ -19,8 +18,9 @@ import syslog
 import json
 import traceback
 import WindData
+from riemann import RiemannClient, RiemannUDPTransport
 
-rmmonitor = bernhard.Client(host=config.riemann['host'])
+rmmonitor = RiemannClient(transport = RiemannUDPTransport, host=config.riemann['host'])
 
 MAX_MSG_SIZE = 1000000
 
