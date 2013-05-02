@@ -253,7 +253,7 @@ class Pollenc:
                     print ('%s' % (workobj['content']['content']))
                     continue
                 if workobj['content']['error'] != 'None':
-                    print ('error! %s' % (workobj['content']['error']))
+                    print ('pollenc error! %s' % (workobj['content']['error']))
                     return
                 break
             
