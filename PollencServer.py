@@ -117,6 +117,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                     self.request.send('invalid header: %s\n' % (hlenRec))
                     return
             
+            syslog.syslog(syslog.LOG_DEBUG, 'processing')
             syslog.syslog(syslog.LOG_DEBUG, 'msg header len: %i' % (hlen))
             
             if hlen > MAX_MSG_SIZE or hlen == 0:
@@ -136,6 +137,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 data += b
 
             dataobj = ''
+            syslog.syslog(syslog.LOG_DEBUG, 'ejs 2')
+            syslog.syslog(syslog.LOG_DEBUG, 'total bytes read: %i' % (len(data)))
                         
             try:
                 dataobj = json.loads(data)

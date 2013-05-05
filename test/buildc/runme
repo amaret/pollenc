@@ -1,6 +1,4 @@
-export PATH=$PATH:$HOME/git/amaret/downloader/dnldr
+export PATH=$PATH:$/git/amaret/downloader/dnldr
 
-../../pollenc --build-c --buildenv msp430_gcc --mcu msp430g2452 -t rustyisacowboy blink430_fast.c -i mycode -i myothercode -l fet -o out
-
-../../pollenc --build-c --buildenv arduino_gcc --mcu atmega328p -t rustyisacowboy Blink.ino -i myarduinocode -l arduino -o out -s /dev/ttyACM1 -b 115200
+../../pollenc --vvv --build-c -c arduino --mcu atmega328p -t abcdefghijkl Blink.ino -i myarduinocode -l arduino --out myout -s /dev/ttyACM0 -b 115200
 

@@ -192,7 +192,7 @@ class Pollenc:
         b64data = base64.b64encode(data)
         rmfile(self.workzip)
         
-        if not os.path.exists(self.args.filename):
+        if self.args.buildpollen and not os.path.exists(self.args.filename):
             print "Module " + self.args.filename + " not found"
             sys.exit()     
 
@@ -216,7 +216,7 @@ class Pollenc:
                        }, 
                    'content' :  {
                        'source':  b64data, 
-                       'filename': self.getRelToTmpDirName(),
+                       'filename': self.getRelToTmpDirName() if self.args.buildpollen else self.args.filename,
                        'partnum': self.args.mcu
                        }
                    }

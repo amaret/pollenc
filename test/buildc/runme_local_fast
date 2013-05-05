@@ -1,0 +1,4 @@
+export PATH=$PATH:$/git/amaret/downloader/dnldr
+
+../../pollenc --vvv --build-c -c arduino --mcu atmega328p -t abcdefghijkl BlinkFast.ino -i myarduinocode -l arduino --out myout -s /dev/ttyACM0 -b 115200 --host localhost
+
