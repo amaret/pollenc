@@ -489,7 +489,7 @@ if __name__ == "__main__":
             dest='runDownloader', action='store_true', help='invoke the downloader')
 
     parser.add_argument('--compile', 
-            dest='runCompile', action='store_true', help='not invoke the compiler')
+            dest='runCompile', action='store_true', help='invoke the compiler')
 
     parser.add_argument('-v', '--verbose', 
             dest='verbose', action='store_true', help='verbose')
