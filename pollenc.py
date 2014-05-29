@@ -83,8 +83,16 @@ if __name__ == "__main__":
   # translator and compiler. For example, the input bundles included, the output directory, any cflags, 
   # other flags, etc.
   ####
+  parser.add_argument('--cFlags', dest='cFlags', action='store', help='options to pass to C compiler', required=False)
+  parser.add_argument('--env', dest='env', action='store', help='pollen module used for pollen.environment', required=False)
+  parser.add_argument('--props', dest='props', action='store', help='properties file', required=False)
+  parser.add_argument('--avr-gcc', dest='avr-gcc', action='store', help='avr target, gcc compiler', required=False)
+  parser.add_argument('--efm32-gcc', dest='efm32-gcc', action='store', help='efm32 target, gcc compiler', required=False)
+  parser.add_argument('--localhost-gcc', dest='localhost-gcc', action='store', help='localhost target, gcc compiler', required=False)
+  parser.add_argument('--msp430-gcc', dest='msp430-gcc', action='store', help='msp430 target, gcc compiler', required=False)
 
-  parser.add_argument('-o', '--out', dest='outdir', action='store', help='output dir', default='./build')
+  parser.add_argument('-e', '--entry', dest='entry',  action='store', help='pollen file entry point', required=True)
+  parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
 
 
   args = parser.parse_args()
