@@ -36,6 +36,8 @@ class Pollenc:
 
   def __init__ (self, args):
     self.bundleNames = []
+    self.env = args.env
+    self.prn = args.prn
     self.args = args
     self.aid = str(os.getpid()) + '_' + str(random.randint(1, 10000))
     self.workname = 'pollenc_' + self.aid
@@ -165,6 +167,8 @@ class Pollenc:
       'type': 'request', 
       'service': 'compile', 
       'bundles': self.bundleNames,
+      'env': self.env,
+      'prn': self.prn,
       'user': {
         'token': self.args.token, 
         'id': 0, 
@@ -272,6 +276,7 @@ if __name__ == "__main__":
       rmdir(args.outdir)
   os.mkdir(args.outdir)
 
+  args.entry = os.path.abspath(args.entry)
   (p, m) = os.path.split(args.entry)
   (bname, p) = os.path.split(p)
   if args.bundles == None:
@@ -279,8 +284,28 @@ if __name__ == "__main__":
   if bname not in args.bundles:
      args.bundles.append(bname)
 
+  # if the environment module is local put its bundle in bundle list
+  if args.env != None: 
+      if args.env[0] != '@': # not on the server
+          args.env = os.path.abspath(args.env) 
+          (p1, m) = os.path.split(args.env) 
+          (bname, p2) = os.path.split(p1) 
+          args.env = p2 + "/" + m
+          if bname not in args.bundles: 
+              args.bundles.append(bname)
+
+  # if the print module impl is local put its bundle in bundle list
+  if args.prn != None: 
+      if args.prn[0] != '@': # not on the server
+          args.prn = os.path.abspath(args.prn) 
+          (p1, m) = os.path.split(args.prn) 
+          (bname, p2) = os.path.split(p1) 
+          args.prn = p2 + "/" + m
+          if bname not in args.bundles: 
+              args.bundles.append(bname)
+
   if not os.path.exists(args.entry):
-     print "Module " + self.args.entry + " not found"
+     print "Module " + args.entry + " not found"
      sys.exit()
 
   Pollenc(args).run() 
