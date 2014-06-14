@@ -38,6 +38,8 @@ class Pollenc:
     self.bundleNames = []
     self.env = args.env
     self.prn = args.prn
+    self.trace = args.trace # superset of verbose output
+    self.verbose = True if args.verbose and not args.trace else False
     self.args = args
     self.aid = str(os.getpid()) + '_' + str(random.randint(1, 10000))
     self.workname = 'pollenc_' + self.aid
@@ -53,7 +55,8 @@ class Pollenc:
 
   def zipBundles(self, zip, paths):
         tmpdir = '/tmp/' + self.workname
-        print "client tmpdir %s" % tmpdir
+        self.dbglog("Preparing work dirs...", "client tmp directory: %s" % tmpdir + \
+                ", client queue name: %s" % self.qName)
         for src in paths:
             if src.find('*')!=-1 or src.find('?')!=-1:
                 wildcardLst = glob.glob(src)
@@ -74,8 +77,14 @@ class Pollenc:
 
   def makeBundleZip(self):
         zip = zipfile.ZipFile(self.workzip, 'w')
-        print "client bundles %s" % self.args.bundles
+        self.dbglog("Preparing bundles...", "client bundles: %s" % self.args.bundles)
+        file_count = 1
         if self.args.bundles != None:
+            for src in self.args.bundles:
+              path, dirs, files = os.walk(src).next()
+              file_count += len(files)
+            msg = "Preparing %s files..." if file_count > 1 else "Preparing %s file..." 
+            self.dbglog(msg % str(file_count))
             self.zipBundles(zip, self.args.bundles)
             zip.close()
 
@@ -153,11 +162,41 @@ class Pollenc:
         r = l[llen -3] + '/' + l[llen -2] + '/' + l[llen -1]
         return r
 
+  # verbose output shows the phases for users.
+  # trace output has internal info for debugging.
+  # if trace is true verbose is set to false
+  def dbglog(self, phase, msg=None):
+      if not self.verbose and not self.trace:
+        return
+      if self.verbose:
+        print phase
+        return
+      if self.trace:
+        print "DBGLOG: " + phase
+        if not msg:
+            return
+        didprint = False
+        if 'aid' in msg:
+          print "  dbg 'aid' " + str(msg['aid'])
+          didprint = True
+        if 'reply' in msg:
+          print "  dbg 'reply' " + str(msg['reply'])
+          didprint = True
+        if 'tid' in msg:
+          print "  dbg 'tid' " + str(msg['tid'])
+          didprint = True
+        if 'type' in msg:
+          print "  dbg 'type' " + str(msg['type'])
+          didprint = True
+        if not didprint:
+          print "   " + str(msg)
+        
+
   def sendCompileRequest(self):    
     tid = hashlib.sha1(str(time.time()) + '-' + self.args.token).hexdigest()    
     b64data = base64.b64encode(self.getData())
 
-    self.reply = 'clc_response_' + self.aid + '_' + tid
+    self.reply = 'POLLENC_REPLYTO_QUEUE_%s' % self.aid
 
     jsonobj = {
       'compiler': self.args.toolchain,
@@ -169,6 +208,7 @@ class Pollenc:
       'bundles': self.bundleNames,
       'env': self.env,
       'prn': self.prn,
+      'trace': self.trace,
       'user': {
         'token': self.args.token, 
         'id': 0, 
@@ -181,26 +221,29 @@ class Pollenc:
       }
     }
 
-    print "Sending compile request:"
-    print "client aid %s" % self.aid
+    self.dbglog("Sending compile request, queue name" + self.qName + "...", jsonobj)
     self.redis.lpush(self.qName, json.dumps(jsonobj))
-    print jsonobj
 
 
   def run(self):
     self.makezip()
-    print "Pollenc running.."
+    self.dbglog("Pollenc running...")
     self.sendCompileRequest()
 
     while True:
-      response = self.redis.brpop(keys=[self.reply], timeout=600);
+
+      self.dbglog("Wait for response...", self.reply)
+      #response = self.redis.brpop(keys=[self.reply], timeout=600);
+      response = self.redis.brpop(keys=[self.reply], timeout=30);
       if ( not response or not len(response) == 2) :
         raise Exception('bad response from clc: %s' % (response))
-        print "error"
 
       workobj   = json.loads(response[1])
+      self.dbglog("Got response...", workobj)
+      if workobj['type'] == 'userlog':
+          print ('MSG: %s' % (workobj['content']['source'])) 
+          continue
       if workobj['type'] != 'response': 
-          print ('%s' % (workobj['content']['source'])) 
           continue
       if workobj['content']['error'] != 'None': 
           print ('pollenc error! %s' % (workobj['content']['error'])) 
@@ -209,13 +252,14 @@ class Pollenc:
 
     rmfile(self.workzip)
 
+    self.dbglog("Got workobj...", workobj)
     b64 = workobj['content']['source']
     zipbytes = base64.b64decode(b64)
     origpath = os.getcwd()
     os.chdir(self.args.outdir)
     self.unzip(zipbytes)
     os.chdir(origpath)
-    print "\nPollenc done. Build output in " + self.args.outdir
+    self.dbglog("Pollenc done. Build output in " + self.args.outdir)
     self.printStdErr() #look for stderr and play msgs
 
 
@@ -238,23 +282,40 @@ if __name__ == "__main__":
   ####
   group = parser.add_mutually_exclusive_group()
 
-  parser.add_argument('-b', '--bundles', dest='bundles',  nargs='*', action='store', help="list of pollen bundles. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
+  parser.add_argument('-b', '--bundles', dest='bundles',  nargs='*', action='store', \
+          help="list of pollen bundles. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
 
-  parser.add_argument('-i', '--include', dest='includes',  nargs='*', action='store', help='list of c files to be uploaded to server.', required=False)
+  parser.add_argument('-i', '--include', dest='includes',  nargs='*', action='store', \
+          help='list of c files to be uploaded to server.', required=False)
 
-  group.add_argument('-t', '--toolchain', dest='toolchain', action='store', help='toolchain (compiler).', required=False, choices = ['avr-gcc', "msp430-gcc", "arm-gcc", "localhost-gcc"])
+  group.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
+          help='toolchain (compiler).', required=False, \
+          choices = ['avr-gcc', "msp430-gcc", "arm-gcc", "localhost-gcc"])
 
   parser.add_argument('--mcu', dest='mcu', action='store', help='microcontroller', required=False)
-  parser.add_argument('--cflags', dest='cflags', action='store', help='extra options to pass to C compiler.', required=False)
 
-  parser.add_argument('-e', '--entry', dest='entry',  action='store', help='top level pollen file (entry point). Qualify with bundle and package.', required=True)
+  parser.add_argument('--cflags', dest='cflags', action='store', \
+          help='extra options to pass to C compiler.', required=False)
 
-  parser.add_argument('--env', dest='env', action='store', help='pollen module used for pollen.environment. Path prefixed with "@" is on server, else will be uploaded.', required=False)
+  parser.add_argument('-e', '--entry', dest='entry',  action='store', \
+          help='top level pollen file (entry point). Qualify with bundle and package.', required=True)
 
-  parser.add_argument('--prn', dest='prn', action='store', help='pollen module that will implement the print protocol.  Path prefixed with "@" is on server, else will be uploaded.', required=False) 
+  helpStr = ('pollen module used for pollen.environment. ' +
+            'Path prefixed with "@" is on server, else will be uploaded.')
+  parser.add_argument('--env', dest='env', action='store', help=helpStr, required=False)
+
+  helpStr = 'pollen module that will implement the print protocol. ' \
+          + 'Path prefixed with "@" is on server, else will be uploaded.'
+  parser.add_argument('--prn', dest='prn', action='store', help=helpStr, required=False) 
+
   parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
 
-  group.add_argument('--props', dest='props', action='store', help='properties file (for toolchain compiler and options).', required=False)
+  group.add_argument('--props', dest='props', action='store', \
+          help='properties file (for toolchain compiler and options).', required=False)
+
+  parser.add_argument('--trace', dest='trace', action='store_true', help=argparse.SUPPRESS) 
+
+  parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='verbose output')
 
 
   args = parser.parse_args()
