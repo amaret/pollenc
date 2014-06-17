@@ -234,7 +234,8 @@ class Pollenc:
 
       self.dbglog("Wait for response...", self.reply)
       #response = self.redis.brpop(keys=[self.reply], timeout=600);
-      response = self.redis.brpop(keys=[self.reply], timeout=30);
+      #response = self.redis.brpop(keys=[self.reply], timeout=30);
+      response = self.redis.brpop(keys=[self.reply, self.reply], timeout=30);
       if ( not response or not len(response) == 2) :
         raise Exception('bad response from clc: %s' % (response))
 
@@ -282,31 +283,29 @@ if __name__ == "__main__":
   ####
   group = parser.add_mutually_exclusive_group()
 
-  parser.add_argument('-b', '--bundles', dest='bundles',  nargs='*', action='store', \
-          help="list of pollen bundles. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
+  parser.add_argument('-b', '--bundle', dest='bundles',  action='append', \
+          help="pollen bundle. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
 
-  parser.add_argument('-i', '--include', dest='includes',  nargs='*', action='store', \
-          help='list of c files to be uploaded to server.', required=False)
+  parser.add_argument('-i', '--include', dest='includes', action='append', \
+          help='c file to be uploaded to server.', required=False)
 
   group.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
           help='toolchain (compiler).', required=False, \
           choices = ['avr-gcc', "msp430-gcc", "arm-gcc", "localhost-gcc"])
 
-  parser.add_argument('--mcu', dest='mcu', action='store', help='microcontroller', required=False)
+  parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
 
   parser.add_argument('--cflags', dest='cflags', action='store', \
           help='extra options to pass to C compiler.', required=False)
 
-  parser.add_argument('-e', '--entry', dest='entry',  action='store', \
-          help='top level pollen file (entry point). Qualify with bundle and package.', required=True)
 
   helpStr = ('pollen module used for pollen.environment. ' +
             'Path prefixed with "@" is on server, else will be uploaded.')
-  parser.add_argument('--env', dest='env', action='store', help=helpStr, required=False)
+  parser.add_argument('-e', '--environment', dest='env', action='store', help=helpStr, required=False)
 
   helpStr = 'pollen module that will implement the print protocol. ' \
           + 'Path prefixed with "@" is on server, else will be uploaded.'
-  parser.add_argument('--prn', dest='prn', action='store', help=helpStr, required=False) 
+  parser.add_argument('-p', '--print-module', dest='prn', action='store', help=helpStr, required=False) 
 
   parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
 
@@ -317,6 +316,8 @@ if __name__ == "__main__":
 
   parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='verbose output')
 
+  parser.add_argument('entry', nargs='?', action='store', \
+          help='top level pollen file (entry point). Qualify with bundle and package.')
 
   args = parser.parse_args()
 
