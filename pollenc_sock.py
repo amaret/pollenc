@@ -123,8 +123,20 @@ class Pollenc:
           binfile = open(tmpzip, 'wb')
           binfile.write(src)
           binfile.close()
-          z = zipfile.ZipFile(tmpzip)
-          z.extractall('.')
+
+          with zipfile.ZipFile(tmpzip) as zf:
+              for member in zf.namelist():
+                  # passing exec permission thru zip did not work
+                  # anyhow flags for exec are os dependent.
+                  # this is a hack but should work okay.
+                  zf.extract(member,'.')
+                  name = member.split('-',1)
+                  if len(name) > 1:
+                      if name[1] == "prog.out":
+                          os.chmod(member,0755)
+
+          #z = zipfile.ZipFile(tmpzip)
+          #z.extractall('.')
           rmfile(tmpzip)
       except Exception, e:
           print("argh! %s" % (e))
