@@ -411,8 +411,8 @@ if __name__ == "__main__":
 
   parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
 
-  parser.add_argument('--cflags', dest='cflags', action='store', \
-          help='extra options to pass to C compiler.', required=False)
+  parser.add_argument('--cflags=', dest='cflags', action='store', \
+          help='quoted string containing extra options to pass to C compiler.', required=False)
 
 
   helpStr = ('pollen module used for pollen.environment. ' +
@@ -452,19 +452,15 @@ if __name__ == "__main__":
 
   args.build = not args.translateOnly
 
-  if not args.translateOnly and args.mcu == None:
-      print("Option error: If -t (toolchain) is specified then --mcu option must also be specified") 
-      sys.exit(1)
-
-  if args.translateOnly and args.mcu != None:
+  if args.translateOnly and str(args.mcu) != None:
       print("Option error: If --mcu option is specified then -t (toolchain) must also be specified")
       sys.exit(1)
 
-  if (not args.translateOnly and args.toolchain != "localhost-gcc" and args.mcu == 'None'):
+  if (not args.translateOnly and args.toolchain != "localhost-gcc" and str(args.mcu) == 'None'):
       print("Option error: --mcu option is required with toolchain " + args.toolchain)
       sys.exit(1)
 
-  if (args.toolchain == "localhost-gcc" and args.mcu != 'None'):
+  if (args.toolchain == "localhost-gcc" and str(args.mcu) != 'None'):
       print("Option error: --mcu option should not be specified with toolchain " + args.toolchain)
       sys.exit(1)
 
