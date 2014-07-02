@@ -1,0 +1,23 @@
+'''
+Global configuration file
+'''
+mongo = {
+  'host': 'localhost', # '10.244.138.56'
+  'port': 27017,
+}
+
+redis = {
+  'host': '54.235.73.136', # AMI
+  'port': 6379,
+}
+
+pollenc_tcp = {
+  'interface': 'ec2-54-90-156-89.compute-1.amazonaws.com', #'54.90.156.89', #'0.0.0.0',
+  'port': 5140,
+}
+
+riemann = {
+  'host': 'redbis.wind.io',
+  'clienthost': 'passage.wind.io'
+}
+

@@ -14,10 +14,10 @@ import base64
 import random
 import time
 import hashlib
-import socket
 import redis
-from os.path import isfile, join
 
+REDIS_HOST = "redbis.wind.io"
+REDIS_PORT = 6379
 
 def rmfile(f):
     try:
@@ -36,109 +36,18 @@ class Pollenc:
 
   def __init__ (self, args):
     self.bundleNames = []
+    self.env = args.env
+    self.prn = args.prn
     self.trace = args.trace # superset of verbose output
     self.verbose = True if args.verbose and not args.trace else False
     self.args = args
     self.aid = str(os.getpid()) + '_' + str(random.randint(1, 10000))
     self.workname = 'pollenc_' + self.aid
-    self.workzip = '/tmp/' + self.workname + '_src.zip' 
+    self.workzip = '/tmp/' + self.workname + '_src.zip'
 
-    # Sending the bundle that contains the top level module (or env or print module)
-    # had side effect of (possibly) sending many (eg hundreds!) unneeded files. 
-    # To fix we copy the files in the needed module's package into
-    # a tmp directory and only that bundle is uploaded to server.
-
-    (p1, m) = os.path.split(args.entry)
-    (bpath, pname) = os.path.split(p1)
-    (p2,bname) = os.path.split(bpath)
-
-    self.pollen_entry = '/tmp/' + self.workname +  '_entry' 
-    if os.path.exists(self.pollen_entry):
-        rmdir(self.pollen_entry)
-
-    os.mkdir(self.pollen_entry)
-    os.mkdir(self.pollen_entry + '/' + bname)
-    os.mkdir(self.pollen_entry + '/' + bname + '/' + pname)
-    onlyfiles = [ os.path.join(p1,f) for f in os.listdir(p1) if isfile(join(p1,f)) ]
-    for f in onlyfiles:
-        shutil.copy2(f, self.pollen_entry + '/' + bname + '/' + pname)
-    self.args.entry = self.pollen_entry + '/' + bname + '/' + pname + '/' + m
-    if self.args.bundle_paths == None:
-        self.args.bundle_paths = []
-    if bpath not in args.bundle_paths: 
-      args.bundle_paths.append(bpath)
-    #exit(0)
-
-  # if the environment module is local put its bundle in bundle list
-    if args.env != None: 
-        if args.env[0] != '@': # not on the server
-            args.env = os.path.abspath(args.env) 
-            (p1, m) = os.path.split(args.env) 
-            (bpath, pname) = os.path.split(p1) 
-            (p2, bname) = os.path.split(bpath) 
-            if bpath not in args.bundle_paths: 
-                args.bundle_paths.append(bpath)
-                self.pollen_env = '/tmp/' + self.workname +  '_env' 
-                if os.path.exists(self.pollen_env): 
-                    rmdir(self.pollen_env) 
-                os.mkdir(self.pollen_env) 
-                os.mkdir(self.pollen_env + '/' + bname)
-                shutil.copy2(args.env + '.p', self.pollen_env + '/' + bname + '/' + pname)
-                args.env = self.pollen_env + '/' + bname + '/' + pname + '/' + m
-    self.env = args.env
-  
-    # if the print module impl is local put its bundle in bundle list
-    if args.prn != None: 
-        if args.prn[0] != '@': # not on the server
-            args.prn = os.path.abspath(args.prn) 
-            (p1, m) = os.path.split(args.prn) 
-            (bpath, pname) = os.path.split(p1) 
-            (p2, bname) = os.path.split(bpath) 
-            if bpath not in args.bundle_paths: 
-                args.bundle_paths.append(bpath)
-                self.pollen_prn = '/tmp/' + self.workname +  '_prn' 
-                if os.path.exists(self.pollen_prn): 
-                    rmdir(self.pollen_prn) 
-                os.mkdir(self.pollen_prn) 
-                os.mkdir(self.pollen_prn + '/' + bname)
-                shutil.copy2(args.prn + '.p', self.pollen_prn + '/' + bname + '/' + pname)
-                args.prn = self.pollen_prn + '/' + bname + '/' + pname + '/' + m
-    self.prn = args.prn
-  
-    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    self.sock.connect((args.host, args.port))
-
-    #
-    # begin comm
-    #
-  def write(self, msg):
-        hmsg = "%i\n%s" % (len(msg), msg)
-        self.sock.send(hmsg)
-
-  def read(self):
-
-        hlen = 0
-        hlenRec = ''
-        while True:
-            b = self.sock.recv(1)
-            if b == '\n':
-                hlen = int(hlenRec)
-                break
-            hlenRec += b
-
-        BUFSZ = 1024
-        r = ''
-        while len(r) < hlen:
-            sz = BUFSZ
-            rem = hlen - len(r)
-            if rem < BUFSZ:
-                sz = rem
-            b = self.sock.recv(sz)
-            r += b
-        return r
-    #
-    # end comm
-    #
+    # Using redis for now
+    self.redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+    self.qName = 'POLLEN_CLC_0_1'      
 
   def makezip(self):
        rmfile(self.workzip)
@@ -146,8 +55,8 @@ class Pollenc:
 
   def zipBundles(self, zip, paths):
         tmpdir = '/tmp/' + self.workname
-        self.dbglog("Preparing work dirs...", "client tmp directory: %s" % tmpdir )
-               
+        self.dbglog("Preparing work dirs...", "client tmp directory: %s" % tmpdir + \
+                ", client queue name: %s" % self.qName)
         for src in paths:
             if src.find('*')!=-1 or src.find('?')!=-1:
                 wildcardLst = glob.glob(src)
@@ -155,12 +64,10 @@ class Pollenc:
                     self.zipBundles(zip, wildcardLst) #recurse for wildcard
                     continue
             if not os.path.exists(src):
-                print "no path to bundleName " + src
                 self.bundleNames.append(src)
                 continue #system bundle
             rmdir(tmpdir)
             bundleName = self.getBundleName(src)
-            self.dbglog("...src path: " + src + ", bundle: " + bundleName)
             if bundleName in self.bundleNames:
                 continue #dupe -i
             self.bundleNames.append(bundleName)
@@ -170,15 +77,15 @@ class Pollenc:
 
   def makeBundleZip(self):
         zip = zipfile.ZipFile(self.workzip, 'w')
-        self.dbglog("Preparing bundles... client bundles: %s" % str(self.args.bundle_paths))
+        self.dbglog("Preparing bundles...", "client bundles: %s" % self.args.bundles)
         file_count = 1
-        if self.args.bundle_paths != None:
-            for src in self.args.bundle_paths:
+        if self.args.bundles != None:
+            for src in self.args.bundles:
               path, dirs, files = os.walk(src).next()
               file_count += len(files)
             msg = "Preparing %s files..." if file_count > 1 else "Preparing %s file..." 
             self.dbglog(msg % str(file_count))
-            self.zipBundles(zip, self.args.bundle_paths)
+            self.zipBundles(zip, self.args.bundles)
             zip.close()
 
   def unzip(self,src): 
@@ -187,20 +94,8 @@ class Pollenc:
           binfile = open(tmpzip, 'wb')
           binfile.write(src)
           binfile.close()
-
-          with zipfile.ZipFile(tmpzip) as zf:
-              for member in zf.namelist():
-                  # passing exec permission thru zip did not work
-                  # anyhow flags for exec are os dependent.
-                  # this is a hack but should work okay.
-                  zf.extract(member,'.')
-                  name = member.split('-',1)
-                  if len(name) > 1:
-                      if name[1] == "prog.out":
-                          os.chmod(member,0755)
-
-          #z = zipfile.ZipFile(tmpzip)
-          #z.extractall('.')
+          z = zipfile.ZipFile(tmpzip)
+          z.extractall('.')
           rmfile(tmpzip)
       except Exception, e:
           print("argh! %s" % (e))
@@ -228,6 +123,8 @@ class Pollenc:
                 if self.filenameOk(file):
                     namelist += root + '/'+ file + ' '
                     zip.write(os.path.join(root, file))
+        #if self.getVerbose() > 0:
+        #    print('preparing %s' % (namelist))
         os.chdir(origpath)
 
   def printStdErr(self):
@@ -255,10 +152,8 @@ class Pollenc:
         file.close()
         return data
 
-  def getRelToTmpDirName(self,filepath):
-        if filepath == None:
-            return None
-        abspath = os.path.abspath(filepath)
+  def getRelToTmpDirName(self):
+        abspath = os.path.abspath(self.args.entry)
         (r, m) = os.path.split(abspath)
         l = abspath.split("/")
         llen = len(l)
@@ -284,13 +179,6 @@ class Pollenc:
         if 'aid' in msg:
           print "  dbg 'aid' " + str(msg['aid'])
           didprint = True
-        if 'bundles' in msg:
-          print "  dbg 'bundles' " + str(msg['bundles'])
-          didprint = True
-        if 'content' in msg:
-          if 'entry' in msg['content']:
-            print "  dbg 'entry' " + str(msg['content']['entry'])
-            didprint = True
         if 'reply' in msg:
           print "  dbg 'reply' " + str(msg['reply'])
           didprint = True
@@ -318,8 +206,8 @@ class Pollenc:
       'type': 'request', 
       'service': 'compile', 
       'bundles': self.bundleNames,
-      'env': self.getRelToTmpDirName(self.env),
-      'prn': self.getRelToTmpDirName(self.prn),
+      'env': self.env,
+      'prn': self.prn,
       'trace': self.trace,
       'user': {
         'token': self.args.token, 
@@ -328,16 +216,13 @@ class Pollenc:
       },
       'content' :  {
         'source':  b64data, 
-        'entry': self.getRelToTmpDirName(self.args.entry),
+        'entry': self.getRelToTmpDirName(),
         'mcu': self.args.mcu
       }
     }
 
-    self.dbglog("Sending compile request" +  "...", jsonobj)
-    jsonstr = json.dumps(jsonobj)
-    #print 'sending json:\n' + jsonstr + '\n'
-    self.write(jsonstr)
-    
+    self.dbglog("Sending compile request, queue name" + self.qName + "...", jsonobj)
+    self.redis.lpush(self.qName, json.dumps(jsonobj))
 
 
   def run(self):
@@ -348,11 +233,16 @@ class Pollenc:
     while True:
 
       self.dbglog("Wait for response...", self.reply)
-      r = self.read()
-      workobj   = json.loads(r)
+      #response = self.redis.brpop(keys=[self.reply], timeout=600);
+      #response = self.redis.brpop(keys=[self.reply], timeout=30);
+      response = self.redis.brpop(keys=[self.reply, self.reply], timeout=30);
+      if ( not response or not len(response) == 2) :
+        raise Exception('bad response from clc: %s' % (response))
+
+      workobj   = json.loads(response[1])
       self.dbglog("Got response...", workobj)
       if workobj['type'] == 'userlog':
-          print ('[server message] %s' % (workobj['content']['source'])) 
+          print ('MSG: %s' % (workobj['content']['source'])) 
           continue
       if workobj['type'] != 'response': 
           continue
@@ -380,11 +270,8 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   # The host and port arguments are for later. Right now pollenc is using redis not sockets. 
-  parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="127.0.0.1")
-  #parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="passage.wind.io")
+  parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="passage.wind.io")
   parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=2323, type=int)
-  # 26164 is open by a network utility port scan, not many open ports!
-  #parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=26164, type=int)
 
   # The token argument is for later. It will be a user specified token that identifies them. 
   parser.add_argument('--token', dest='token', action='store', help='user credential', required=False)
@@ -396,7 +283,7 @@ if __name__ == "__main__":
   ####
   group = parser.add_mutually_exclusive_group()
 
-  parser.add_argument('-b', '--bundle', dest='bundle_paths',  action='append', \
+  parser.add_argument('-b', '--bundle', dest='bundles',  action='append', \
           help="pollen bundle. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
 
   parser.add_argument('-i', '--include', dest='includes', action='append', \
@@ -458,21 +345,37 @@ if __name__ == "__main__":
       rmdir(args.outdir)
   os.mkdir(args.outdir)
 
+  args.entry = os.path.abspath(args.entry)
+  (p, m) = os.path.split(args.entry)
+  (bname, p) = os.path.split(p)
+  if args.bundles == None:
+     args.bundles = []
+  if bname not in args.bundles:
+     args.bundles.append(bname)
+
+  # if the environment module is local put its bundle in bundle list
+  if args.env != None: 
+      if args.env[0] != '@': # not on the server
+          args.env = os.path.abspath(args.env) 
+          (p1, m) = os.path.split(args.env) 
+          (bname, p2) = os.path.split(p1) 
+          args.env = p2 + "/" + m
+          if bname not in args.bundles: 
+              args.bundles.append(bname)
+
+  # if the print module impl is local put its bundle in bundle list
+  if args.prn != None: 
+      if args.prn[0] != '@': # not on the server
+          args.prn = os.path.abspath(args.prn) 
+          (p1, m) = os.path.split(args.prn) 
+          (bname, p2) = os.path.split(p1) 
+          args.prn = p2 + "/" + m
+          if bname not in args.bundles: 
+              args.bundles.append(bname)
+
   if not os.path.exists(args.entry):
      print "Module " + args.entry + " not found"
      sys.exit()
-
-  args.entry = os.path.abspath(args.entry)
-  if args.entry.endswith('.p'):
-          args.entry = args.entry[:-2]
-  if args.prn != None:
-      if args.prn.endswith('.p'):
-          args.prn = args.prn[:-2]
-  if args.env != None:
-      if args.env.endswith('.p'):
-          args.env = args.env[:-2]
-
-
 
   Pollenc(args).run() 
 

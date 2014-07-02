@@ -11,6 +11,7 @@ import os
 #import config
 #import WindData
 
+import config
 import SocketServer
 import StringIO
 import threading
@@ -22,11 +23,11 @@ import traceback
 
 #rmmonitor = RiemannClient(transport = RiemannUDPTransport, host=config.riemann['host'])
 
-REDIS_HOST = "redbis.wind.io"
-REDIS_PORT = 6379
 REDIS_QNAME = 'POLLEN_CLC_0_1'
-TCP_HOST= '0.0.0.0'
-TCP_PORT= 2323
+REDIS_HOST = ""
+REDIS_PORT = 0
+TCP_HOST= ''
+TCP_PORT= 0
 
 MAX_MSG_SIZE = 1000000
 
@@ -204,6 +205,12 @@ class PollencServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
 if __name__ == '__main__':
+
+
+    REDIS_HOST = config.redis['host']
+    REDIS_PORT = config.redis['port']
+    TCP_HOST = config.pollenc_tcp['interface'] 
+    TCP_PORT = config.pollenc_tcp['port']
 
     syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % ((REDIS_HOST, REDIS_PORT))) 
     
