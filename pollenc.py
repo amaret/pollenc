@@ -2,6 +2,7 @@
 
 # Copyright 2014 Amaret Inc. All rights reserved.
 
+import config
 import sys
 import subprocess
 import shutil
@@ -285,6 +286,9 @@ class Pollenc:
         if not msg:
             return
         didprint = False
+        if 'compiler' in msg:
+          print "  dbg 'compiler' " + str(msg['compiler'])
+          didprint = True
         if 'aid' in msg:
           print "  dbg 'aid' " + str(msg['aid'])
           didprint = True
@@ -385,8 +389,11 @@ if __name__ == "__main__":
 
   #parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="54.90.156.89")
   #parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=2323, type=int)
-  parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="54.90.156.89")
-  parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=5140, type=int)
+  tcpHost = config.pollenc_tcp['interface']
+  tcpPort = config.pollenc_tcp['port']
+  print "tcp " + str(tcpHost) + " " + str(tcpPort)
+  parser.add_argument('--host', dest='host', action='store', help='wind.io host', default=tcpHost)
+  parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=tcpPort, type=int)
   #parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="passage.wind.io")
 
   # The token argument is for later. It will be a user specified token that identifies them. 

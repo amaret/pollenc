@@ -23,7 +23,6 @@ import traceback
 
 #rmmonitor = RiemannClient(transport = RiemannUDPTransport, host=config.riemann['host'])
 
-REDIS_QNAME = 'POLLEN_CLC_0_1'
 REDIS_HOST = ""
 REDIS_PORT = 0
 TCP_HOST= ''
@@ -62,7 +61,10 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     # begin redis usage
     #
     def getQName(self, compiler): 
-      return REDIS_QNAME
+        qName = config.redisQueues[compiler] 
+        if not qName:
+            raise Exception('problem in toolchain specification')
+        return qName
 
     def write(self, qname, dstr):
       self.getRdis().lpush(qname, dstr);
