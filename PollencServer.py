@@ -5,12 +5,6 @@
 import sys
 import datetime
 import os
-
-#sys.path.append(sys.path[0] + os.sep + '..' + os.sep + 'wind.lib')
-#sys.path.insert(1, "/etc/amaret")
-#import config
-#import WindData
-
 import config
 import SocketServer
 import StringIO
@@ -19,14 +13,16 @@ import redis
 import syslog
 import json
 import traceback
-#from riemann import RiemannClient, RiemannUDPTransport
+import socket
+from riemann import RiemannClient, RiemannUDPTransport
 
-#rmmonitor = RiemannClient(transport = RiemannUDPTransport, host=config.riemann['host'])
+rmmonitor = RiemannClient(transport = RiemannUDPTransport, host=config.riemann['host'])
 
 REDIS_HOST = ""
 REDIS_PORT = 0
 TCP_HOST= ''
 TCP_PORT= 0
+CLIENT_HOST = ''
 
 MAX_MSG_SIZE = 1000000
 
@@ -166,8 +162,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def sendErrorStats(self):
         state = 'warning'
-
-        #rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc exception', 'metric': 1, 'description': 'pollenc txn failed', 'state': state})
+        rmmonitor.send({'host': CLIENT_HOST, 'service': 'pollenc exception', 'metric': 1, 'description': 'pollenc txn failed', 'state': state})
         return
 
     def sendStats(self, starttime):
@@ -183,8 +178,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             state = 'warning'
         elif mdur > 10000:
             state = 'critical'
-       
-        #rmmonitor.send({'host': config.riemann['clienthost'], 'service': 'pollenc txn-dur', 'metric': mdur, 'description': 'pollenc txn duration in milliseconds', 'state': state})
+        rmmonitor.send({'host': CLIENT_HOST, 'service': 'pollenc txn-dur', \
+                'metric': mdur, 'description': 'pollenc txn duration in milliseconds', \
+                'state': state})
         return
 
     def logexception(self, includetraceback = 0):
@@ -211,8 +207,9 @@ if __name__ == '__main__':
 
     REDIS_HOST = config.redis['host']
     REDIS_PORT = config.redis['port']
-    TCP_HOST = config.pollenc_tcp['interface'] 
+    TCP_HOST = socket.getfqdn() # on aws this is internal name, which works.
     TCP_PORT = config.pollenc_tcp['port']
+    CLIENT_HOST = socket.gethostbyname(socket.gethostname()) # riemann client
 
     syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % ((REDIS_HOST, REDIS_PORT))) 
     

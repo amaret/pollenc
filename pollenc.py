@@ -44,6 +44,7 @@ class Pollenc:
     self.aid = str(os.getpid()) + '_' + str(random.randint(1, 10000))
     self.workname = 'pollenc_' + self.aid
     self.workzip = '/tmp/' + self.workname + '_src.zip' 
+    self.translateOnly = args.translateOnly
 
     # Set up the bundle_paths. This involes creating tmp directories for 
     # entry, print module, environment to avoid copying all files in the 
@@ -457,7 +458,6 @@ if __name__ == "__main__":
   if (args.props == None and args.toolchain == None):
 	  args.translateOnly = True
 
-  args.build = not args.translateOnly
 
   if args.translateOnly and str(args.mcu) != None:
       print("Option error: If --mcu option is specified then -t (toolchain) must also be specified")
@@ -470,6 +470,9 @@ if __name__ == "__main__":
   if (args.toolchain == "localhost-gcc" and str(args.mcu) != 'None'):
       print("Option error: --mcu option should not be specified with toolchain " + args.toolchain)
       sys.exit(1)
+
+  if args.translateOnly:
+      args.toolchain = "localhost-gcc"
 
   if os.path.exists(args.outdir):
       rmdir(args.outdir)
@@ -488,8 +491,6 @@ if __name__ == "__main__":
   if args.env != None:
       if args.env.endswith('.p'):
           args.env = args.env[:-2]
-
-
 
   Pollenc(args).run() 
 

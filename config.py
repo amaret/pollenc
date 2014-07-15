@@ -17,7 +17,7 @@ redis = {
 #}
 
 pollenc_tcp = {
-          'interface': 'ec2-54-90-156-89.compute-1.amazonaws.com', #'54.90.156.89', #'0.0.0.0',
+          'interface': 'ec2-54-89-253-204.compute-1.amazonaws.com',
           'port': 5140,
 }
 
