@@ -133,7 +133,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             token = dataobj["user"]["token"]
 
-            syslog.syslog(syslog.LOG_INFO, 'pollenc request handler invoked for token %s' % (token))
+            syslog.syslog(syslog.LOG_INFO, 'pollenc worker invoked for token %s' % (token))
             cur_thread = threading.currentThread()
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["token"])
             dataobj["reply"] = responseQueue

@@ -12,8 +12,8 @@ redis = {
 }
 
 pollenc_tcp = {
-  'interface': 'ec2-54-90-156-89.compute-1.amazonaws.com', #'54.90.156.89', #'0.0.0.0',
   'port': 5140,
+  #'interface': now the pollenc_server gets the local ip from python (socket). 
 }
 
 riemann = {
