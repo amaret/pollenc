@@ -1,0 +1,334 @@
+#!/bin/bash
+# NOTE run this on the new image
+#
+
+cd ~/.
+
+echo Run this on the REMOTE host.
+
+if [[ -z "$1" ]]; then
+    echo >&2 "You must supply an argument!"
+    echo "Valid options are -avr, -localhost, -arm, -server, -riemann, -mongodb, -help"
+    exit 0
+fi
+
+read -p "Are you logged in on the remote host as the new user?" yn
+case $yn in
+[Yy]*) echo "Okay, continuing."
+    ;;
+*) echo "Bye. Must be logged in on the remote host as the new user!"
+    exit 0
+    ;;
+esac
+
+read -p "Do you wish to install packages for the cloud compiler on a fresh AWS image?" yn
+
+case $yn in
+[Yy]*) echo "Begin installing packages for cloud compiler."
+    ;;
+*) echo "Okay bye."
+    exit 0
+    ;;
+esac
+
+case $1 in 
+-riemann)
+    # See pycairo configure
+    if [[ ! -e python2.7-config ]]; then
+        echo Get a python version of python2.7-config from the development system before continuing. 
+        exit 1
+    fi
+    ;;
+*);;
+esac
+
+sudo apt-get update
+
+case $1 in 
+-avr)
+    ;&
+-localhost)
+    ;&
+-arm)
+    ;&
+-msp430)
+    echo Make toolchain directories...
+    mkdir bin bundles include wind.compile
+    echo Installing packages common to all toolchains...
+    # for gcc
+    sudo apt-get install build-essential  
+    #java jvm can be openjdk or oracle java. 
+    #The former for vers 7 is ‘reference’ so we use it:
+    sudo apt-get install openjdk-7-jdk icedtea-7-plugin
+    #python
+    sudo apt-get install python-pip python-dev
+    #redis
+    sudo pip install redis
+    #NOTE git for reimann: 
+    sudo apt-get install git-core
+    #reimann client: 
+    sudo pip install git+git://github.com/gleicon/pyriemann
+    #NOTE javascript don’t need to do anything
+    #Need riemann for riemann-health
+    wget http://aphyr.com/riemann/riemann-0.2.5.tar.bz2
+    tar xvfj riemann-0.2.5.tar.bz2
+    sudo apt-get install build-essential
+    sudo apt-get install ruby1.9.1-full
+    sudo apt-get install openjdk-7-jdk icedtea-7-plugin
+    echo \nGet some coffee this next takes forever. 
+    sudo gem install riemann-client riemann-tools riemann-dash
+    ;;
+*);;
+esac
+
+case $1 in 
+-avr) echo \nInstalling avr toolchain...
+    sudo apt-get install gcc-avr   # A port of GCC to AVR target processor
+    sudo apt-get install binutils-avr #low-level utilities for building & manipulating object files
+    sudo apt-get install avr-libc # AVR Library files
+    ;;
+-localhost) echo \nInstalling gcc toolchain...
+    # I think it is all done.
+    ;;
+-msp430) echo \nInstalling msp430 toolchain...
+    # undocumented: not in help.
+    sudo apt-get install gcc-msp430 gdb-msp430 mspdebug
+    ;;
+-arm) echo \nInstalling arm toolchain... 
+    sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded
+    sudo apt-get update
+    sudo apt-get install gcc-arm-none-eabi
+    ;;
+-server) echo \nInstalling packages for the cloud compiler server
+    mkdir bin pollenc
+    #python
+    sudo apt-get install python-pip python-dev
+    #redis
+    sudo pip install redis
+    #NOTE git for reimann: 
+    sudo apt-get install git-core
+    #reimann client: 
+    sudo pip install git+git://github.com/gleicon/pyriemann
+    #Need riemann for riemann-health
+    wget http://aphyr.com/riemann/riemann-0.2.5.tar.bz2
+    tar xvfj riemann-0.2.5.tar.bz2
+    sudo apt-get install build-essential
+    sudo apt-get install ruby1.9.1-full
+    sudo apt-get install openjdk-7-jdk icedtea-7-plugin
+    echo \nGet some coffee this next takes forever. 
+    sudo gem install riemann-client riemann-tools riemann-dash
+
+    ;;
+-riemann) echo \ninstalling riemann server + graphite + apache
+
+    # Riemann server install
+    # Install riemann graphite pycairo cairo graphite carbon whisper apache etc etc. 
+    # Version hacks, no joy. Had to roll back my django and twisted, etc. 
+    # Be prepared to tinker. 
+    
+    sudo apt-get upgrade
+    
+    wget http://launchpad.net/graphite/0.9/0.9.10/+download/carbon-0.9.10.tar.gz
+    wget http://launchpad.net/graphite/0.9/0.9.10/+download/whisper-0.9.10.tar.gz
+    wget http://cairographics.org/releases/py2cairo-1.10.0.tar.bz2
+    
+    tar xjf py2cairo-1.10.0.tar.bz2
+    tar -zxvf graphite-web-0.9.10.tar.gz
+    tar -zxvf carbon-0.9.10.tar.gz
+    tar -zxvf whisper-0.9.10.tar.gz
+    
+    # 
+    mv graphite-web-0.9.10 graphite
+    mv carbon-0.9.10 carbon
+    mv whisper-0.9.10 whisper
+    mv whisper-0.9.10 whisper
+    rm carbon-0.9.10.tar.gz
+    rm graphite-web-0.9.10.tar.gz
+    rm whisper-0.9.10.tar.gz
+    rm py2cairo-1.10.0.tar.bz2
+     
+    sudo apt-get install --assume-yes apache2 apache2-mpm-worker apache2-utils apache2.2-bin libapr1 libaprutil1 libaprutil1-dbd-sqlite3 libapache2-mod-wsgi libaprutil1-ldap memcached python-dev python-cairo-dev python-django python-ldap python-memcache python-pysqlite2 sqlite3 erlang-os-mon erlang-snmp rabbitmq-server bzr expect ssh libapache2-mod-python python-setuptools nano libcairo2-dev
+    
+    sudo apt-get install python-pip python-dev
+    # version madness required 1.4 not 1.6
+    sudo pip install django==1.4.2 
+    sudo pip install django-tagging
+    
+    ####################################
+    # INSTALL RIEMANN
+    ####################################
+    
+    wget http://aphyr.com/riemann/riemann-0.2.5.tar.bz2
+    tar xvfj riemann-0.2.5.tar.bz2
+    sudo apt-get install build-essential
+    sudo apt-get install ruby1.9.1-full
+    sudo apt-get install openjdk-7-jdk icedtea-7-plugin 
+    echo \nGet some coffee this next takes forever. 
+    sudo gem install riemann-client riemann-tools riemann-dash
+    
+    ####################################
+    # INSTALL WHISPER
+    ####################################
+     
+    cd ~/whisper
+    sudo python setup.py install
+     
+    ####################################
+    # INSTALL CARBON
+    ####################################
+     
+    cd ~/carbon
+    sudo python setup.py install
+    
+    ####################
+    # CONFIGURE CARBON
+    ####################
+    cd /opt/graphite/conf
+    sudo cp carbon.conf.example carbon.conf
+    sudo cp storage-schemas.conf.example storage-schemas.conf
+    
+    ####################################
+    # CONFIGURE PYCAIRO
+    ####################################
+     
+    cd ~/py2cairo-1.10.0
+    export PYTHON=/usr/bin/python
+    export LIBRARY_PATH=$HOME/include:/usr/include/
+    export PKG_CONFIG_PATH=$HOME/lib/pkgconfig
+    export LD_LIBRARY_PATH=$HOME/lib
+    
+    echo pycairo configure assumes a python2.7-config which is python but installed version 
+    echo may be csh which will cause this waf configure error:
+    echo "command ['/usr/local/bin/python', '/usr/local/python2.7-config/bin/python-config', '--includes'] returned 1"
+    echo which is actually a syntax error. Bugzilla 80688.
+    echo Replace the /usr/bin/python2.7-config which is csh with python version in login dir. 
+    echo NOTE: Follow symlinks!
+    
+    read -p "Enter y if the python2.7-config issue is addressed: " yn
+    case $yn in
+    [Yy]*) echo "Ok, continuing..."
+    	;;
+    *) echo "See ya later."
+            exit 0
+    	;;
+    esac
+    
+    ./waf configure --prefix=/usr
+    ./waf build
+    ./waf install
+    cp -R /usr/lib/python2.6/site-packages/* $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+    ####################################
+    # CONFIGURE GRAPHITE (webapp)
+    ####################################
+
+    wget http://launchpad.net/graphite/0.9/0.9.10/+download/graphite-web-0.9.10.tar.gz
+    tar -zxvf graphite-web-0.9.10.tar.gz
+    mv graphite-web-0.9.10 graphite
+     
+    cd ~/graphite
+    sudo python check-dependencies.py
+    sudo python setup.py install
+     
+    ###################
+    # CONFIGURE APACHE
+    ###################
+    cd ~/graphite/examples
+    sudo cp example-graphite-vhost.conf /etc/apache2/sites-available/graphite-vhost.conf
+    echo We copied graphite-vhost.conf to /etc/apache2/sites-available/
+    echo BUT it needs editing. 
+    echo    WSGISocketPrefix run/wsgi
+    echo should be 
+    echo    WSGISocketPrefix /var/run/apache2/wsgi
+    echo and
+    echo    ServerName graphite
+    echo should be
+    echo    ServerName amazon-public-dns
+    echo and 
+    echo   Alias /media/ '@DJANGO_ROOT@/contrib/admin/media/'
+    echo should be install path for django for example:
+    echo   Alias /media/ '/usr/local/lib/python2.7/dist-packages/django/contrib/admin/media/'
+    echo and
+    echo the directory blocks have apache 2.2 format and apache2.4 is reqd.
+    echo Replace the Directory block contents for /opt/graphite/conf with:
+    echo            Require all granted
+    echo Replace the Directory block contents for /opt/graphite/webapp with:
+    echo            Require all granted
+    
+    read -p "After editing the file enter y: " yn
+    case $yn in
+    [Yy]*) echo "Okay, continuing."
+        ;;
+    *) echo "Bye." 
+        exit 0
+        ;;
+    esac
+    # symlink for apache configure.
+    sudo ln -s /etc/apache2/sites-available/graphite-vhost.conf /etc/apache2/sites-enabled/graphite-vhost.conf
+    
+    sudo cp /opt/graphite/conf/graphite.wsgi.example /opt/graphite/conf/graphite.wsgi
+    
+    # if this path does not exist make it!!!!!!
+    # /etc/httpd/wsgi            not sure I need httpd on ubuntu version
+    #sudo mkdir /etc/httpd
+    #sudo mkdir /etc/httpd/wsgi
+    sudo /etc/init.d/apache2 reload
+     
+    ####################################
+    # INITIAL DATABASE CREATION
+    ####################################
+    cd /etc/apache2
+    sudo ln -s ./sites-available/graphite-vhost.conf ./sites-enabled/graphite-vhost.conf
+    cd /opt/graphite/webapp/graphite/
+    sudo cp local_settings.py.example local_settings.py
+    echo
+    echo "You must edit /opt/graphite/webapp/graphite/local_settings.py file."
+    echo "The 'DATABASES={...}' must be uncommented for the manage.py script to work."
+    read -p "After editing the file enter y: " yn
+    case $yn in
+    [Yy]*) echo "Okay, continuing."
+        ;;
+    *) echo "Bye." 
+        exit 0
+        ;;
+    esac
+    
+    sudo python manage.py syncdb
+    echo follow prompts to setup django admin user
+    echo NOTE user root, password megans default sticky password.
+    sudo chown -R www-data:www-data /opt/graphite/storage/
+    sudo /etc/init.d/apache2 restart
+     
+     
+    ####################################
+    # START CARBON
+    ####################################
+    # Ran into https://twistedmatrix.com/trac/ticket/6827#comment:3
+    # Had to completely install twisted before I could uninstall it 
+    # and replace with an earlier version to workaround.
+    sudo easy_install  twisted
+    sudo pip uninstall twisted
+    sudo rm -Rf /usr/lib/python2.7/dist-packages/twisted
+    sudo pip install twisted==13.1.0
+    
+    cd /opt/graphite/
+    sudo ./bin/carbon-cache.py start
+     
+    ####################################
+    # SEND DATA TO GRAPHITE
+    ####################################
+    cd ~/graphite/examples
+    sudo chmod +x example-client.py
+    # [optional] edit example-client.py to report data faster
+    # sudo vim example-client.py
+    echo if example-client.py gives output the install worked.
+    sudo ./example-client.py
+    ;;
+-mongodb) echo installing mongodb
+    sudo apt-get install mongodb-server
+    ;;
+-help) Options are -avr, -localhost, -arm, -server, -riemann, -mongodb. 
+    ;;
+*)  echo Unrecognized option $1. Use -help for options.
+    exit 1
+    ;;
+esac

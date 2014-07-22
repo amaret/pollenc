@@ -1,0 +1,93 @@
+#!/bin/bash
+export PC='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/bitbucket/pollenc'
+export SVR='PollencServer.py'
+export BB='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/bitbucket/'
+export WC='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/bitbucket/wind.compile'
+export BU='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/pollen-workspace/ami'
+export INC='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/test'
+export WKR='PollenWorker.py'
+export UTL='ClcUtils.py'
+
+echo Transfer Cloud Compiler files to AWS image. 
+echo This script is used to transfer files under development: server, workers, pollen.jar, etc.
+echo Pass the DNS of target or it will use current AWS.
+echo "  Enter Yes to transfer, anything for no."
+
+if [[ $# -eq 1 ]]; then
+    export AWS=$1
+    echo set AWS to $AWS
+fi
+
+echo
+echo "Do you wish to scp to AWS image..." 
+echo
+read -p "...PollenWorker?" yn
+case $yn in
+        [Yy]* ) echo transfering... ${WC##*bitbucket/}/$WKR
+            cd ${WC%wind.compile}
+            ssh_scp ${WC##*bitbucket/}/$WKR;;
+        * ) echo "transfer skipped"
+esac
+echo
+read -p "...PollencServer?" yn
+case $yn in
+        [Yy]* ) echo transfering... ${PC##*bitbucket/}/$SVR
+            cd ${PC%pollenc}
+            ssh_scp ${PC##*bitbucket/}/$SVR;;
+        * ) echo "transfer skipped"
+esac
+echo
+read -p "...ClcUtils?" yn
+case $yn in
+        [Yy]* ) echo transfering... ${WC##*bitbucket/}/$UTL
+            cd ${WC%wind.compile}
+            ssh_scp ${WC##*bitbucket/}/$UTL;;
+        * ) echo "transfer skipped"
+esac
+echo
+read -p "...LATEST (dev version) pollen.jar?" yn
+case $yn in
+        [Yy]* ) echo transfering... pollen.jar
+            cd ~/
+            ssh_scp bin/pollen.jar;;
+        * ) echo "transfer skipped"
+esac
+echo
+read -p "...LATEST (dev version) pollen props files?" yn
+case $yn in
+        [Yy]* ) echo transfering... pollen props files
+            cd $INC
+            tar zcvf - include |   ssh -i ~/.ssh/amaret-be.pem pops@${AWS} "cat > ~/include/props.tar; tar xvf ~/include/props.tar"
+            ;;
+        * ) echo "transfer skipped"
+esac
+
+echo
+read -p "Do you wish to xfer pollen bundles?" yn
+case $yn in
+        [Yy]* ) echo transfering... pollen bundles
+            cd $BU
+            tar zcvf - bundles/atmel bundles/ti bundles/pollen-core bundles/localhost bundles/environments |  ssh -i ~/.ssh/amaret-be.pem pops@${AWS} "cat > ~/bundles/bundles.tar; tar xvf ~/bundles/bundles.tar"
+            ;;
+
+        * ) echo "transfer skipped"
+esac
+echo
+read -p "...PollencServer config file?" yn
+case $yn in
+        [Yy]* ) echo transfering... ${PC##*bitbucket/}/config.py.ami
+            cd ${PC%pollenc}
+            ssh_scp ${PC##*bitbucket/}/config.py.ami ${PC##*bitbucket/}/config.py
+            ;;
+        * ) echo "transfer skipped"
+esac
+echo
+read -p "... PollenWorker config file?" yn
+case $yn in
+        [Yy]* ) echo transfering... ${WC##*bitbucket/}/config.py.ami
+            cd ${WC%wind.compile}
+            ssh_scp ${WC##*bitbucket/}/config.py.ami ${WC##*bitbucket/}/config.py
+            ;;
+        * ) echo "transfer skipped"
+esac
+
