@@ -6,7 +6,7 @@ mongo = {
   'port': 27017,
 }
 
-redis = {
+redis = {          # torn down, replace with aws
   'host': 'redbis.wind.io',
   'port': 6379,
 }
@@ -17,12 +17,12 @@ redis = {
 #}
 
 pollenc_tcp = {
-          'interface': 'ec2-54-89-253-204.compute-1.amazonaws.com',
-          'port': 5140,
+    'interface': 'ec2-50-17-139-216.compute-1.amazonaws.com', #'ec2-54-198-6-59.compute-1.amazonaws.com',
+    'port': 5140,
 }
 
 
-riemann = {
+riemann = {          # torn down, replace with aws
   'host': 'redbis.wind.io',
   'clienthost': 'passage.wind.io'
 }

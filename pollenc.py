@@ -240,9 +240,22 @@ class Pollenc:
         for root, dirs, files in os.walk(self.args.outdir):
             for f in files:
                 if f.endswith('err'):
-                    print 'Msgs from server found in ' + str(root) + '/' + str(f)
+                    print 'Messages from server found in ' + str(root) + '/' + str(f)
                     #with open(root + '/' + f, 'r') as fin:
                     #    print fin.read()
+
+  def printStdOut(self):
+        for root, dirs, files in os.walk(self.args.outdir):
+            for f in files:
+                if f.endswith('stdout'):
+                    with open(root + '/' + f, 'r') as fin:
+                        nr_of_lines = sum(1 for line in fin)
+                        if nr_of_lines > 1:
+                            print 'Host phase output:\n'
+                            fin.close()
+                            with open(root + '/' + f, 'r') as fin:
+                                print fin.read()
+
 
 
   def getBundleName(self, path):
@@ -379,7 +392,8 @@ class Pollenc:
     os.chdir(self.args.outdir)
     self.unzip(zipbytes)
     os.chdir(origpath)
-    print ("Cloud compiler done.\nOutput is in " + self.args.outdir)
+    self.printStdOut() #look for stderr and output path
+    print ("Cloud compiler done.\nOutput files are in " + self.args.outdir)
     self.printStdErr() #look for stderr and output path
 
 
