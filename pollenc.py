@@ -16,7 +16,6 @@ import random
 import time
 import hashlib
 import socket
-import redis
 from os.path import isfile, join
 
 
@@ -402,14 +401,10 @@ if __name__ == "__main__":
   
   parser = argparse.ArgumentParser()
 
-  #parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="54.90.156.89")
-  #parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=2323, type=int)
   tcpHost = config.pollenc_tcp['interface']
   tcpPort = config.pollenc_tcp['port']
-  print "tcp " + str(tcpHost) + " " + str(tcpPort)
   parser.add_argument('--host', dest='host', action='store', help='wind.io host', default=tcpHost)
   parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=tcpPort, type=int)
-  #parser.add_argument('--host', dest='host', action='store', help='wind.io host', default="passage.wind.io")
 
   # The token argument is for later. It will be a user specified token that identifies them. 
   parser.add_argument('--token', dest='token', action='store', help='user credential', required=False)

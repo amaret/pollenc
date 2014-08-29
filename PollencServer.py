@@ -2,6 +2,7 @@
 
 # Copyright 2012, 2013 Amaret Inc. All rights reserved.
 
+#import WindData    (mongo database, or something. For tokens)
 import sys
 import datetime
 import os
@@ -79,6 +80,16 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         emsgtxt = json.dumps(ERROR_MSG_OBJ)
         hmsg = "%i\n%s" % (len(emsgtxt), emsgtxt)
         self.request.send(hmsg)
+
+    def validateToken(self, token):
+        #WindData is the mongo database (I think)
+        #t = WindData.findOne('clc.tokens', {'token': token, 'active': True})
+        #if t != None:
+        #    del t['_id']
+        #    syslog.syslog(syslog.LOG_ERR, json.dumps(t))
+        #return t != None
+        return true
+
     #
     # end redis usage
     #
@@ -132,6 +143,10 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 return
 
             token = dataobj["user"]["token"]
+            if not self.validateToken(token):
+                etxt = 'invalid token \'%s\'' % (token)
+                self.handleError(etxt)
+                return
 
             syslog.syslog(syslog.LOG_INFO, 'pollenc worker invoked for token %s' % (token))
             cur_thread = threading.currentThread()

@@ -17,7 +17,7 @@ pollenc_tcp = {
 }
 
 riemann = {
-      'host': '54.196.234.228', # public ip of the aws riemann serveri
+      'host': 'monitor.pcc.amaret.com', # public ip of the aws riemann serveri
       # clienthost now calculated in code
 }
 
