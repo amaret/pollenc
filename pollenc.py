@@ -44,8 +44,14 @@ class Pollenc:
     self.workname = 'pollenc_' + self.aid
     self.workzip = '/tmp/' + self.workname + '_src.zip' 
     self.translateOnly = args.translateOnly
+    
+    if len(self.args.cbundle) > 0:
+        if self.args.cflags == None:
+            self.args.cflags = "\"-Icbundle\""
+        else:
+            self.args.cflags = "\"" + self.args.cflags + " -Icbundle \""
 
-    # Set up the bundle_paths. This involes creating tmp directories for 
+    # Set up the bundle_paths. Create tmp directories for 
     # entry, print module, environment to avoid copying all files in the 
     # bundles for each of these to the server. We copy only what is in the 
     # package of each of these. Also transmit the server local bundle names.
@@ -144,7 +150,10 @@ class Pollenc:
 
   def makezip(self):
        rmfile(self.workzip)
-       self.makeBundleZip()
+       zip = zipfile.ZipFile(self.workzip, 'w')
+       self.makeBundleZip(zip)
+       self.makeCZip(zip)
+       zip.close()
 
   def zipBundles(self, zip, paths):
         tmpdir = '/tmp/' + self.workname
@@ -157,7 +166,6 @@ class Pollenc:
                     self.zipBundles(zip, wildcardLst) #recurse for wildcard
                     continue
             if not os.path.exists(src):
-                #print "no path to bundleName " + src
                 self.bundleNames.append(src)
                 continue #system bundle
             rmdir(tmpdir)
@@ -165,14 +173,11 @@ class Pollenc:
             self.dbglog("...src path: " + src + ", bundle: " + bundleName)
             if bundleName not in self.bundleNames:
                 self.bundleNames.append(bundleName)
-                #print "bundleName already in zip"
-                #continue #dupe -i
             shutil.copytree(src, tmpdir + '/' + bundleName)
             self.zipdir(tmpdir, zip)
             rmdir(tmpdir)
 
-  def makeBundleZip(self):
-        zip = zipfile.ZipFile(self.workzip, 'w')
+  def makeBundleZip(self, zip):
         self.dbglog("Preparing bundles... client bundles: %s" % str(self.bundle_paths))
         file_count = 1
         if self.bundle_paths != None:
@@ -184,7 +189,25 @@ class Pollenc:
             msg = "Preparing %s files..." if file_count > 1 else "Preparing %s file..." 
             self.dbglog(msg % str(file_count))
             self.zipBundles(zip, self.bundle_paths)
-            zip.close()
+
+  def makeCZip(self, zip):
+        ptmp = []
+        if self.args.cbundle == None:
+            return
+        else:
+            for d in self.args.cbundle:
+                ptmp.append(d)
+        tmpdir = '/tmp/' + self.workname
+        for src in ptmp:
+            rmdir(tmpdir)
+            os.mkdir(tmpdir)
+            msg = "Preparing C files in %s directory..." 
+            self.dbglog(msg % (src))
+            #for now - upload all files.
+            #shutil.copytree(src,tmpdir + '/cbundle/', ignore=shutil.ignore_patterns('*.a', '*.lib', '*.ld', '*.s'))
+            shutil.copytree(src,tmpdir + '/cbundle/')
+            self.zipdir(tmpdir, zip)
+            rmdir(tmpdir)
 
   def unzip(self,src): 
       tmpzip = 'a.zip' 
@@ -359,42 +382,50 @@ class Pollenc:
 
     self.dbglog("Sending compile request" +  "...", jsonobj)
     jsonstr = json.dumps(jsonobj)
+    jlen = len(jsonstr)
+
+    if jlen > config.clcConstants["MAX_MSG_SIZE"]:
+       MAX = config.clcConstants["MAX_MSG_SIZE"]
+       msg = str(("Request to upload %i bytes is refused. Upload size exceeds Pollen cloud compiler maximum of %i bytes.") % (jlen, MAX))
+       print msg
+       if jlen * 2 < config.clcConstants["MAX_MSG_SIZE"]:
+           print "Contact Amaret if you need an SDK C bundle for a target architecture installed in the cloud."
+       sys.exit(1)
+
     self.write(jsonstr)
-    
 
 
   def run(self):
-    self.makezip()
-    self.sendCompileRequest()
-
-    while True:
-
-      r = self.read()
-      workobj   = json.loads(r)
-      self.dbglog("Got response...", workobj)
-      if workobj['type'] == 'userlog':
-          print ('[server message] %s' % (workobj['content']['source'])) 
-          continue
-      if workobj['type'] != 'response': 
-          continue
-      if workobj['content']['error'] != 'None': 
-          print ('pollenc error! %s' % (workobj['content']['error'])) 
-          return
-      break
-
-    rmfile(self.workzip)
-
-    self.dbglog("Got workobj...", workobj)
-    b64 = workobj['content']['source']
-    zipbytes = base64.b64decode(b64)
-    origpath = os.getcwd()
-    os.chdir(self.args.outdir)
-    self.unzip(zipbytes)
-    os.chdir(origpath)
-    self.printStdOut() #look for stderr and output path
-    print ("Cloud compiler done.\nOutput files are in " + self.args.outdir)
-    self.printStdErr() #look for stderr and output path
-
+      self.makezip()
+      self.sendCompileRequest()
+  
+      while True:
+  
+        r = self.read()
+        workobj   = json.loads(r)
+        self.dbglog("Got response...", workobj)
+        if workobj['type'] == 'userlog':
+            print ('[server message] %s' % (workobj['content']['source'])) 
+            continue
+        if workobj['type'] != 'response': 
+            continue
+        if workobj['content']['error'] != 'None': 
+            print ('pollenc error! %s' % (workobj['content']['error'])) 
+            return
+        break
+  
+      rmfile(self.workzip)
+  
+      self.dbglog("Got workobj...", workobj)
+      b64 = workobj['content']['source']
+      zipbytes = base64.b64decode(b64)
+      origpath = os.getcwd()
+      os.chdir(self.args.outdir)
+      self.unzip(zipbytes)
+      os.chdir(origpath)
+      self.printStdOut() #look for stderr and output path
+      print ("Cloud compiler done.\nOutput files are in " + self.args.outdir)
+      self.printStdErr() #look for stderr and output path
 
 
 if __name__ == "__main__":
@@ -419,8 +450,8 @@ if __name__ == "__main__":
   parser.add_argument('-b', '--bundle', dest='bundle_paths',  action='append', \
           help="pollen bundle. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
 
-  parser.add_argument('-i', '--include', dest='includes', action='append', \
-          help='c file to be uploaded to server.', required=False)
+  parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append', \
+          help='root dir of c files to be uploaded to server.', required=False)
 
   group.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
           help='toolchain (compiler).', required=False, \
@@ -430,7 +461,6 @@ if __name__ == "__main__":
 
   parser.add_argument('--cflags=', dest='cflags', action='store', \
           help='quoted string containing extra options to pass to C compiler.', required=False)
-
 
   helpStr = ('pollen module used for pollen.environment. ' +
             'Path prefixed with "@" is on server, else will be uploaded.')
@@ -468,15 +498,15 @@ if __name__ == "__main__":
 	  args.translateOnly = True
 
 
-  if args.translateOnly and str(args.mcu) != None:
+  if args.translateOnly and args.mcu != None:
       print("Option error: If --mcu option is specified then -t (toolchain) must also be specified")
       sys.exit(1)
 
-  if (not args.translateOnly and args.toolchain != "localhost-gcc" and str(args.mcu) == 'None'):
+  if (not args.translateOnly and args.toolchain != "localhost-gcc" and args.mcu == None):
       print("Option error: --mcu option is required with toolchain " + args.toolchain)
       sys.exit(1)
 
-  if (args.toolchain == "localhost-gcc" and str(args.mcu) != 'None'):
+  if (args.toolchain == "localhost-gcc" and args.mcu != None):
       print("Option error: --mcu option should not be specified with toolchain " + args.toolchain)
       sys.exit(1)
 

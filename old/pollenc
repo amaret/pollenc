@@ -564,7 +564,7 @@ if __name__ == "__main__":
 
     parser.add_argument('filename', nargs='?')
 
-    #todo:
+    #TODO:
     # cflags / setcflags
     # ldflags / setldlags
     # there is a problem tunneling - char in argparse

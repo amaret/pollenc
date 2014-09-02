@@ -17,3 +17,7 @@ redisQueues = {
         'localhost-gcc': 'POLLEN_CLC_LOCALHOST_1_0'
 }
 
+clcConstants = {
+        'MAX_MSG_SIZE' : 1000000,
+}
+

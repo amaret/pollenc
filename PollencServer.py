@@ -25,8 +25,6 @@ TCP_HOST= ''
 TCP_PORT= 0
 CLIENT_HOST = ''
 
-MAX_MSG_SIZE = 1000000
-
 ERROR_MSG_OBJ = {
                 'tid': 0, 
                 'aid': 0, 
@@ -64,9 +62,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         return qName
 
     def write(self, qname, dstr):
+      syslog.syslog(syslog.LOG_DEBUG, 'redis push: queue %s' % (qname) )
       self.getRdis().lpush(qname, dstr);
     
     def read(self, replyQueue):
+        syslog.syslog(syslog.LOG_DEBUG, 'redis pop: queue key %s' % (replyQueue) )
         response = self.getRdis().brpop(keys=[replyQueue], timeout=30);
         if ( not response or not len(response) == 2) :
             raise Exception('bad response from clc: %s' % (response))
@@ -88,7 +88,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         #    del t['_id']
         #    syslog.syslog(syslog.LOG_ERR, json.dumps(t))
         #return t != None
-        return true
+        return True
 
     #
     # end redis usage
@@ -96,6 +96,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         starttime = datetime.datetime.now()
+        # get the compile request
         try:
             syslog.syslog(syslog.LOG_DEBUG, 'handler invoked')
             hlen = 0
@@ -116,9 +117,13 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             
             syslog.syslog(syslog.LOG_DEBUG, 'processing')
             syslog.syslog(syslog.LOG_DEBUG, 'msg header len: %i' % (hlen))
-            
-            if hlen > MAX_MSG_SIZE or hlen == 0:
+
+            MAX = config.clcConstants["MAX_MSG_SIZE"]
+
+            if hlen > MAX or hlen == 0:
                 syslog.syslog(syslog.LOG_WARNING, 'rejecting bad msg size header: %s' % (hlen))
+                #handleError() does not transmit error to client
+                self.handleError(("Uploaded zip file has size %i, exceeds Pollen cloud compiler maximum size of %i") %(hlen, MAX))
                 self.request.send('invalid msg size: %i\n' % (hlen))
                 return
 
@@ -153,17 +158,20 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["token"])
             dataobj["reply"] = responseQueue
             qname = self.getQName(dataobj['compiler']);
+            # send the compile request to worker
             self.write(qname, json.dumps(dataobj))
 
             while True:
+                # get the worker response from response queue
                 response = self.read(responseQueue)
                 hmsg = "%i\n%s" % (len(response), response)
+                # send worker response to client
                 self.request.send(hmsg)
                 dataobj = json.loads(response)
                 if dataobj['type'] != 'response':
-                    continue
+                    continue       # a log message
 
-                break
+                break     
             self.sendStats(starttime)     
         except Exception, e:
             self.handleError(str(e))
