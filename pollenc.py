@@ -44,6 +44,7 @@ class Pollenc:
     self.workname = 'pollenc_' + self.aid
     self.workzip = '/tmp/' + self.workname + '_src.zip' 
     self.translateOnly = args.translateOnly
+    self.props = args.props != None
     
     if len(self.args.cbundle) > 0:
         if self.args.cflags == None:
@@ -70,6 +71,9 @@ class Pollenc:
     onlyfiles = [ os.path.join(p1,f) for f in os.listdir(p1) if isfile(join(p1,f)) ]
     for f in onlyfiles:
         shutil.copy2(f, self.pollen_entry + '/' + bname + '/' + pname)
+    # if a props files is to be used, copy it to entry directory with name 'props'
+    if self.props and isfile(args.props):
+        shutil.copy2(args.props, self.pollen_entry + '/' + bname + '/' + pname + '/props')
     self.args.entry = self.pollen_entry + '/' + bname + '/' + pname + '/' + m
     self.bundle_paths.append(self.pollen_entry + '/' + bname)
     entry_bpath = bpath
@@ -367,6 +371,7 @@ class Pollenc:
       'env': self.getRelToTmpDirName(self.env),
       'prn': self.getRelToTmpDirName(self.prn),
       'trace': self.trace,
+      'props': self.props,
       'cflags': self.args.cflags,
       'user': {
         'token': self.args.token, 
