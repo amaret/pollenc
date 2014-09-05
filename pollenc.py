@@ -445,7 +445,7 @@ if __name__ == "__main__":
   # translator and compiler. For example, the input bundles included, the output directory, any cflags, 
   # other flags, etc.
   ####
-  group = parser.add_mutually_exclusive_group()
+  # group = parser.add_mutually_exclusive_group()
 
   parser.add_argument('-b', '--bundle', dest='bundle_paths',  action='append', \
           help="pollen bundle. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
@@ -453,9 +453,9 @@ if __name__ == "__main__":
   parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append', \
           help='root dir of c files to be uploaded to server.', required=False)
 
-  group.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
+  parser.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
           help='toolchain (compiler).', required=False, \
-          choices = ['avr-gcc', "arm-none-eabi-gcc", "localhost-gcc"])
+          choices = ['avr-gcc', "arm-none-eabi-gcc", "efm32-gcc", "localhost-gcc"])
 
   parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
 
@@ -472,7 +472,7 @@ if __name__ == "__main__":
 
   parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
 
-  group.add_argument('--props', dest='props', action='store', \
+  parser.add_argument('--props', dest='props', action='store', \
           help='properties file (for toolchain compiler and options).', required=False)
 
   parser.add_argument('--trace', dest='trace', action='store_true', help=argparse.SUPPRESS) 
@@ -483,6 +483,9 @@ if __name__ == "__main__":
           help='top level pollen file (entry point). Qualify with bundle and package.')
 
   args = parser.parse_args()
+
+  if args.cbundle == None:
+    args.cbundle = []
 
   if args.bundle_paths == None:
     args.bundle_paths = []
