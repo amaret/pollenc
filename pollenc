@@ -277,7 +277,7 @@ class Pollenc:
                     with open(root + '/' + f, 'r') as fin:
                         nr_of_lines = sum(1 for line in fin)
                         if nr_of_lines > 1:
-                            print 'Host phase output:\n'
+                            print '\nHost phase print output:\n'
                             fin.close()
                             with open(root + '/' + f, 'r') as fin:
                                 print fin.read()
@@ -456,7 +456,8 @@ if __name__ == "__main__":
           help="pollen bundle. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
 
   parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append', \
-          help='root dir of c files to be uploaded to server.', required=False)
+          help='local root of subtree of c files to be uploaded to server. Note root of ' + 
+          'this subtree in the cloud will be \'cbundle\'.', required=False)
 
   parser.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
           help='toolchain (compiler).', required=False, \
@@ -488,6 +489,10 @@ if __name__ == "__main__":
           help='top level pollen file (entry point). Qualify with bundle and package.')
 
   args = parser.parse_args()
+
+  if len(sys.argv) == 1:     # no args: print help
+      parser.print_help()
+      sys.exit(0)
 
   if args.cbundle == None:
     args.cbundle = []
