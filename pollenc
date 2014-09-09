@@ -200,6 +200,7 @@ class Pollenc:
             return
         else:
             for d in self.args.cbundle:
+              if d[0] != '@': # not on the server
                 ptmp.append(d)
         tmpdir = '/tmp/' + self.workname
         for src in ptmp:
