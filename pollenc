@@ -3,6 +3,7 @@
 # Copyright 2014 Amaret Inc. All rights reserved.
 
 import config
+import datetime
 import sys
 import subprocess
 import shutil
@@ -33,6 +34,16 @@ def rmdir(d):
 
 
 class Pollenc:
+
+  def getVerbose(self):
+    if self.args.vvverbose == True:
+      return 3
+    if self.args.vverbose == True:
+      return 2
+    if self.args.verbose == True:
+      return 1
+    return 0
+
 
   def __init__ (self, args):
     self.bundleNames = []
@@ -152,6 +163,20 @@ class Pollenc:
     # end comm
     #
 
+  def timeMsg(self, task, starttime):
+       if self.getVerbose() < 3:
+          return
+       stoptime = datetime.datetime.now()
+       diff = stoptime - starttime
+       mdur = diff.microseconds
+       unit = " milliseconds" if mdur > 1000 else " microseconds"
+       if mdur > 1000:
+           mdur = mdur / 1000 # we only care about milliseconds
+       elif mdur == 0:
+           raise Exception('pollenc: impossible duration %s' % (mdur))
+       print str(task) + " took " + str(mdur) + unit
+
+
   def makezip(self):
        rmfile(self.workzip)
        zip = zipfile.ZipFile(self.workzip, 'w')
@@ -160,6 +185,7 @@ class Pollenc:
        zip.close()
 
   def zipBundles(self, zip, paths):
+        starttime = datetime.datetime.now()
         tmpdir = '/tmp/' + self.workname
         self.dbglog("Preparing work dirs...", "client tmp directory: %s" % tmpdir )
                
@@ -180,6 +206,7 @@ class Pollenc:
             shutil.copytree(src, tmpdir + '/' + bundleName)
             self.zipdir(tmpdir, zip)
             rmdir(tmpdir)
+        self.timeMsg("Zipping pollen bundles", starttime)
 
   def makeBundleZip(self, zip):
         self.dbglog("Preparing bundles... client bundles: %s" % str(self.bundle_paths))
@@ -195,6 +222,7 @@ class Pollenc:
             self.zipBundles(zip, self.bundle_paths)
 
   def makeCZip(self, zip):
+        starttime = datetime.datetime.now()
         ptmp = []
         if self.args.cbundle == None:
             return
@@ -213,8 +241,10 @@ class Pollenc:
             shutil.copytree(src,tmpdir + '/cbundle/')
             self.zipdir(tmpdir, zip)
             rmdir(tmpdir)
+        self.timeMsg("Zipping C bundles", starttime)
 
   def unzip(self,src): 
+      starttime = datetime.datetime.now()
       tmpzip = 'a.zip' 
       try: 
           binfile = open(tmpzip, 'wb')
@@ -235,6 +265,7 @@ class Pollenc:
           #z = zipfile.ZipFile(tmpzip)
           #z.extractall('.')
           rmfile(tmpzip)
+          self.timeMsg("Unzipping returned files", starttime)
       except Exception, e:
           print("argh! %s" % (e))
 
@@ -267,9 +298,13 @@ class Pollenc:
         for root, dirs, files in os.walk(self.args.outdir):
             for f in files:
                 if f.endswith('err'):
-                    print 'Messages from server found in ' + str(root) + '/' + str(f)
-                    #with open(root + '/' + f, 'r') as fin:
-                    #    print fin.read()
+                    if self.getVerbose() == 3:
+                      print '\nMessages from server:'  
+                      with open(root + '/' + f, 'r') as fin:
+                        print fin.read()
+                        return
+                    if self.getVerbose() > 0:
+                      print '\nMessages from server found in ' + str(root) + '/' + str(f) 
 
   def printStdOut(self):
         for root, dirs, files in os.walk(self.args.outdir):
@@ -319,7 +354,7 @@ class Pollenc:
   def dbglog(self, phase, msg=None):
       if not self.verbose and not self.trace:
         return
-      if self.verbose:
+      if self.getVerbose() > 1:
         print phase
         return
       if self.trace:
@@ -404,6 +439,7 @@ class Pollenc:
   def run(self):
       self.makezip()
       self.sendCompileRequest()
+      starttime = datetime.datetime.now()
   
       while True:
   
@@ -411,6 +447,7 @@ class Pollenc:
         workobj   = json.loads(r)
         self.dbglog("Got response...", workobj)
         if workobj['type'] == 'userlog':
+          if self.getVerbose() > 0:
             print ('[server message] %s' % (workobj['content']['source'])) 
             continue
         if workobj['type'] != 'response': 
@@ -423,6 +460,7 @@ class Pollenc:
       rmfile(self.workzip)
   
       self.dbglog("Got workobj...", workobj)
+      self.timeMsg("Compiling files", starttime)
       b64 = workobj['content']['source']
       zipbytes = base64.b64decode(b64)
       origpath = os.getcwd()
@@ -430,24 +468,18 @@ class Pollenc:
       self.unzip(zipbytes)
       os.chdir(origpath)
       self.printStdOut() #look for stderr and output path
-      print ("Cloud compiler done.\nOutput files are in " + self.args.outdir)
-      self.printStdErr() #look for stderr and output path
+      print ("Cloud compiler done.")
+      if self.getVerbose() > 0:
+        print ("\nOutput files are in " + self.args.outdir)
+        self.printStdErr() #look for stderr and output path
 
 
 if __name__ == "__main__":
   
   parser = argparse.ArgumentParser()
 
-  tcpHost = config.pollenc_tcp['interface']
-  tcpPort = config.pollenc_tcp['port']
-  parser.add_argument('--host', dest='host', action='store', help='wind.io host', default=tcpHost)
-  parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=tcpPort, type=int)
-
-  # The userid argument is for later. It will be a user specified userid that identifies them. 
-  parser.add_argument('-u','--user', dest='userid', action='store', help='user credential', required=False)
-
   ###
-  # Here we need to collect the rest of the arguments that a user may provide on the commandline for the 
+  # Here we need to collect the arguments that a user may provide on the commandline for the 
   # translator and compiler. For example, the input bundles included, the output directory, any cflags, 
   # other flags, etc.
   ####
@@ -456,15 +488,10 @@ if __name__ == "__main__":
   parser.add_argument('-b', '--bundle', dest='bundle_paths',  action='append', \
           help="pollen bundle. Paths prefixed with '@' are on server, the rest will be uploaded.", required=False)
 
-  parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append', \
-          help='local root of subtree of c files to be uploaded to server. Note root of ' + 
-          'this subtree in the cloud will be \'cbundle\'.', required=False)
-
-  parser.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
-          help='toolchain (compiler).', required=False, \
-          choices = ['avr-gcc', "arm-none-eabi-gcc", "efm32-gcc", "localhost-gcc"])
-
-  parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
+  helpStr = ('Path prefixed with "@" is on server, else this is the ' +
+            'local root of subtree of c files to be uploaded to server. Note root of ' + 
+            'local subtree uploaded to the cloud will be \'cbundle\'.')
+  parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append', help=helpStr, required=False)
 
   parser.add_argument('--cflags=', dest='cflags', action='store', \
           help='quoted string containing extra options to pass to C compiler.', required=False)
@@ -473,18 +500,40 @@ if __name__ == "__main__":
             'Path prefixed with "@" is on server, else will be uploaded.')
   parser.add_argument('-e', '--environment', dest='env', action='store', help=helpStr, required=False)
 
-  helpStr = 'pollen module that will implement the print protocol. ' \
-          + 'Path prefixed with "@" is on server, else will be uploaded.'
-  parser.add_argument('-p', '--print-module', dest='prn', action='store', help=helpStr, required=False) 
+  tcpHost = config.pollenc_tcp['interface']
+  parser.add_argument('--host', dest='host', action='store', help=argparse.SUPPRESS, default=tcpHost)
+
+  parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
 
   parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
+
+  tcpPort = config.pollenc_tcp['port']
+  parser.add_argument('--port', dest='port', action='store', help=argparse.SUPPRESS, default=tcpPort, type=int)
 
   parser.add_argument('--props', dest='props', action='store', \
           help='properties file (for toolchain compiler and options).', required=False)
 
+  helpStr = 'pollen module that will implement the print protocol. ' \
+          + 'Path prefixed with "@" is on server, else will be uploaded.'
+  parser.add_argument('-p', '--print-module', dest='prn', action='store', help=helpStr, required=False) 
+
+  parser.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
+          help='toolchain (compiler).', required=False, \
+          choices = ['avr-gcc', "arm-none-eabi-gcc", "efm32-gcc", "localhost-gcc"])
+
   parser.add_argument('--trace', dest='trace', action='store_true', help=argparse.SUPPRESS) 
 
-  parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='verbose output')
+  # The userid argument is for later. It will be a user specified userid that identifies them. 
+  parser.add_argument('-u','--user', dest='userid', action='store', help='user credential', required=False)
+
+  parser.add_argument('-v', '--verbose',
+         dest='verbose', action='store_true', help='verbose output')
+
+  parser.add_argument('-vv', '--vverbose',
+         dest='vverbose', action='store_true', help='very verbose output')
+
+  parser.add_argument('-vvv', '--vvverbose',
+         dest='vvverbose', action='store_true', help='very very verbose output')
 
   parser.add_argument('entry', nargs='?', action='store', \
           help='top level pollen file (entry point). Qualify with bundle and package.')
@@ -506,6 +555,12 @@ if __name__ == "__main__":
 
   if args.userid == None:
     args.userid = 'TOKEN-' + str(random.randint(1, 10000))
+
+  if args.vverbose == True:
+    args.verbose = True;
+  if args.vvverbose == True:
+    args.verbose = True;
+    args.vverbose = True;
 
   args.translateOnly = False
   if (args.props == None and args.toolchain == None):
