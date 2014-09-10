@@ -356,7 +356,7 @@ class Pollenc:
         
 
   def sendCompileRequest(self):    
-    tid = hashlib.sha1(str(time.time()) + '-' + self.args.token).hexdigest()    
+    tid = hashlib.sha1(str(time.time()) + '-' + self.args.userid).hexdigest()    
     b64data = base64.b64encode(self.getData())
 
     self.reply = 'POLLENC_REPLYTO_QUEUE_%s' % self.aid
@@ -375,7 +375,7 @@ class Pollenc:
       'props': self.props,
       'cflags': self.args.cflags,
       'user': {
-        'token': self.args.token, 
+        'token': self.args.userid, 
         'id': 0, 
         'name': 'None'
       },
@@ -443,8 +443,8 @@ if __name__ == "__main__":
   parser.add_argument('--host', dest='host', action='store', help='wind.io host', default=tcpHost)
   parser.add_argument('--port', dest='port', action='store', help='wind.io port', default=tcpPort, type=int)
 
-  # The token argument is for later. It will be a user specified token that identifies them. 
-  parser.add_argument('--token', dest='token', action='store', help='user credential', required=False)
+  # The userid argument is for later. It will be a user specified userid that identifies them. 
+  parser.add_argument('-u','--user', dest='userid', action='store', help='user credential', required=False)
 
   ###
   # Here we need to collect the rest of the arguments that a user may provide on the commandline for the 
@@ -504,8 +504,8 @@ if __name__ == "__main__":
   if args.host == None:
     args.host = ""
 
-  if args.token == None:
-    args.token = 'TOKEN-' + str(random.randint(1, 10000))
+  if args.userid == None:
+    args.userid = 'TOKEN-' + str(random.randint(1, 10000))
 
   args.translateOnly = False
   if (args.props == None and args.toolchain == None):
