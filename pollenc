@@ -19,6 +19,8 @@ import hashlib
 import socket
 from os.path import isfile, join
 
+import textwrap
+
 
 def rmfile(f):
     try:
@@ -32,6 +34,117 @@ def rmdir(d):
     except:
             pass
 
+'''=========================================================================='''
+''' ScreenLogger class      '''
+'''=========================================================================='''
+
+class ScreenLogger:
+
+  def __init__(self, level="INFO"):
+
+    self.indentsize = 2
+    self.colors = { 'END': '\033[0m', 'LightRed': '\033[91m', 'LightGreen': '\033[92m', 'LightYellow': '\033[93m',
+             'LightBlue': '\033[94m', 'LightPink': '\033[95m', 'LightCyan': '\033[96m' , 'Blue': '\033[34m'}
+
+    self.levelArray = ["NOTICE", "INFO", "WARN", "ERROR", "DEBUG", "TRACE"]
+
+    self.level = "INFO"
+    if level in self.levelArray:
+      self.level = self.levelArray.index(level)
+
+    self.levels = {
+      'NOTICE': { 'color': self.colors['LightCyan']},
+      'INFO':   { 'color': self.colors['LightYellow']},
+      'WARN':   { 'color': self.colors['LightPink']},
+      'ERROR':  { 'color': self.colors['LightRed']},
+      'DEBUG':  { 'color': self.colors['LightGreen']},
+      'TRACE':  { 'color': self.colors['LightGreen']},
+   }
+
+
+  def output(self, level, message, indent, newline):
+    if level in self.levels.keys():
+      indent = " " * (self.indentsize * indent)
+      sys.stdout.write(self.levels[level]['color'])
+
+      if level == "DEBUG" or level == "TRACE" or level == "ERROR":
+        sys.stdout.write("[" + level.lower() + "] ")
+
+      sys.stdout.write(indent + message)
+      sys.stdout.write(self.colors["END"])
+      if newline == True:
+        sys.stdout.write("\n")
+
+  def notice(self, message, indent=0, newline=True):
+    self.output("NOTICE", message, indent, newline)
+
+  def info(self, message, indent=0, newline=True):
+    self.output("INFO", message, indent, newline)
+
+  def warn(self, message, indent=0, newline=True):
+    self.output("WARN", message, indent, newline)
+
+  def error(self, message, indent=0, newline=True):
+    self.output("ERROR", message, indent, newline)
+
+  def debug(self, message, indent=0, newline=True):
+    self.output("DEBUG", message, indent, newline)
+
+  def ulog(self, msgobj, indent=0, trace=False):
+    level = msgobj['content']['level']
+    msg = msgobj['content']['source']
+
+    if trace == False and level != "TRACE":
+      if level == "OUTPUT":
+        self.notice(msg, indent)
+      else:
+        self.output(level, msg, indent, True)
+    #else: 
+      # print trace info for the ulog message...
+    
+
+  def trace(self, message, indent=0, newline=True):    
+    if self.level < self.levelArray.index("TRACE"):
+      return
+
+    if 'type' in message:
+      if message['type'] == 'userlog':
+        self.ulog(message, indent, trace=True)
+      elif message['type'] == 'request':
+        self.traceRequest(message, indent)
+      elif message['type'] == 'response':
+        self.traceResponse(message, indent)
+      return
+
+    else:
+      self.output("TRACE", message, indent, newline)
+
+
+  def traceRequest(self, message, indent = 0):  
+    self.output("TRACE", "compile request, tid: %s, aid: %s" % 
+      (str(message['tid']), str(message['aid'])), indent, True)
+
+    self.output("TRACE", "compiler: %s, mcu: %s, cflags: %s, props: %s" % 
+      (message['compiler'], message['content']['mcu'], message['cflags'], message['props']), indent, True)
+
+    self.output("TRACE", "entry: %s, environment: %s, print module: %s" % 
+      (message['content']['entry'], message['env'], message['prn']), indent, True)
+
+    self.output("TRACE", "bundles: %s" % str(message['bundles']), indent, True)
+
+
+  def traceResponse(self, message, indent = 0):
+    self.output("TRACE", "compile response, tid: %s, aid: %s" % 
+      (str(message['tid']), str(message['aid'])), indent, True)
+
+    self.output("TRACE", "user id: %s, user name: %s, file built: %s, error %s" %     
+      (message['user']['id'], message['user']['name'], message['content']['entry'], message['content']['error']), indent, True)
+
+
+
+'''=========================================================================='''
+''' Pollenc class      '''
+'''=========================================================================='''
 
 class Pollenc:
 
@@ -46,6 +159,8 @@ class Pollenc:
 
 
   def __init__ (self, args):
+    self.log = ScreenLogger("DEBUG")
+
     self.bundleNames = []
     self.bundle_paths = []
     self.trace = args.trace # superset of verbose output
@@ -176,40 +291,40 @@ class Pollenc:
            raise Exception('pollenc: impossible duration %s' % (mdur))
        print str(task) + " took " + str(mdur) + unit
 
+  def makezip(self):      
+      self.log.info("\nPreparing files...", 0)
+      self.log.debug("Work directory: " + self.pollen_entry)
+      self.log.debug("Bundle directories (%s): %s" % (str(len(self.bundle_paths) - 1), str(self.bundle_paths[1:])))
 
-  def makezip(self):
-       rmfile(self.workzip)
-       zip = zipfile.ZipFile(self.workzip, 'w')
-       self.makeBundleZip(zip)
-       self.makeCZip(zip)
-       zip.close()
+      starttime = datetime.datetime.now()      
+      rmfile(self.workzip)
+      zip = zipfile.ZipFile(self.workzip, 'w')
+      self.makeBundleZip(zip)
+      self.makeCZip(zip)
+      zip.close()
+      self.log.debug("File preparation took %s seconds." % str((datetime.datetime.now() - starttime).total_seconds()))
 
   def zipBundles(self, zip, paths):
-        starttime = datetime.datetime.now()
-        tmpdir = '/tmp/' + self.workname
-        self.dbglog("Preparing work dirs...", "client tmp directory: %s" % tmpdir )
-               
-        for src in paths:
-            if src.find('*')!=-1 or src.find('?')!=-1:
-                wildcardLst = glob.glob(src)
-                if len(wildcardLst) > 0:
-                    self.zipBundles(zip, wildcardLst) #recurse for wildcard
-                    continue
-            if not os.path.exists(src):
-                self.bundleNames.append(src)
-                continue #system bundle
-            rmdir(tmpdir)
-            bundleName = self.getBundleName(src)
-            self.dbglog("...src path: " + src + ", bundle: " + bundleName)
-            if bundleName not in self.bundleNames:
-                self.bundleNames.append(bundleName)
-            shutil.copytree(src, tmpdir + '/' + bundleName)
-            self.zipdir(tmpdir, zip)
-            rmdir(tmpdir)
-        self.timeMsg("Zipping pollen bundles", starttime)
-
+    tmpdir = '/tmp/' + self.workname
+           
+    for src in paths:
+        if src.find('*')!=-1 or src.find('?')!=-1:
+            wildcardLst = glob.glob(src)
+            if len(wildcardLst) > 0:
+                self.zipBundles(zip, wildcardLst) #recurse for wildcard
+                continue
+        if not os.path.exists(src):
+            self.bundleNames.append(src)
+            continue #system bundle
+        rmdir(tmpdir)
+        bundleName = self.getBundleName(src)
+        if bundleName not in self.bundleNames:
+            self.bundleNames.append(bundleName)
+        shutil.copytree(src, tmpdir + '/' + bundleName)
+        self.zipdir(tmpdir, zip)
+        rmdir(tmpdir)
+  
   def makeBundleZip(self, zip):
-        self.dbglog("Preparing bundles... client bundles: %s" % str(self.bundle_paths))
         file_count = 1
         if self.bundle_paths != None:
             for src in self.bundle_paths:
@@ -217,31 +332,32 @@ class Pollenc:
                   continue
               path, dirs, files = os.walk(src).next()
               file_count += len(files)
-            msg = "Preparing %s files..." if file_count > 1 else "Preparing %s file..." 
-            self.dbglog(msg % str(file_count))
+
             self.zipBundles(zip, self.bundle_paths)
 
   def makeCZip(self, zip):
-        starttime = datetime.datetime.now()
-        ptmp = []
-        if self.args.cbundle == None:
-            return
-        else:
-            for d in self.args.cbundle:
-              if d[0] != '@': # not on the server
-                ptmp.append(d)
-        tmpdir = '/tmp/' + self.workname
-        for src in ptmp:
-            rmdir(tmpdir)
-            os.mkdir(tmpdir)
-            msg = "Preparing C files in %s directory..." 
-            self.dbglog(msg % (src))
-            #for now - upload all files.
-            #shutil.copytree(src,tmpdir + '/cbundle/', ignore=shutil.ignore_patterns('*.a', '*.lib', '*.ld', '*.s'))
-            shutil.copytree(src,tmpdir + '/cbundle/')
-            self.zipdir(tmpdir, zip)
-            rmdir(tmpdir)
-        self.timeMsg("Zipping C bundles", starttime)
+      starttime = datetime.datetime.now()
+      ptmp = []
+      if self.args.cbundle == None:
+          return
+      else:
+          for d in self.args.cbundle:
+            if d[0] != '@': # not on the server
+              ptmp.append(d)
+      tmpdir = '/tmp/' + self.workname
+
+      if len(ptmp) > 0:
+        self.log.debug("C directory included: %s" % str(ptmp, 1))      
+
+
+      for src in ptmp:
+          rmdir(tmpdir)
+          os.mkdir(tmpdir)
+          #for now - upload all files.
+          #shutil.copytree(src,tmpdir + '/cbundle/', ignore=shutil.ignore_patterns('*.a', '*.lib', '*.ld', '*.s'))
+          shutil.copytree(src,tmpdir + '/cbundle/')
+          self.zipdir(tmpdir, zip)
+          rmdir(tmpdir)
 
   def unzip(self,src): 
       starttime = datetime.datetime.now()
@@ -299,7 +415,7 @@ class Pollenc:
             for f in files:
                 if f.endswith('err'):
                     if self.getVerbose() == 3:
-                      print '\nMessages from server:'  
+                      print '\nMessages from server:'                        
                       with open(root + '/' + f, 'r') as fin:
                         print fin.read()
                         return
@@ -388,7 +504,7 @@ class Pollenc:
           didprint = True
         if not didprint:
           print "   " + str(msg)
-        
+
 
   def sendCompileRequest(self):    
     tid = hashlib.sha1(str(time.time()) + '-' + self.args.userid).hexdigest()    
@@ -421,7 +537,9 @@ class Pollenc:
       }
     }
 
-    self.dbglog("Sending compile request" +  "...", jsonobj)
+    self.log.info("\nBuilding %s.p ..." % jsonobj['content']['entry'])
+    self.log.trace(jsonobj)
+
     jsonstr = json.dumps(jsonobj)
     jlen = len(jsonstr)
 
@@ -444,12 +562,16 @@ class Pollenc:
       while True:
   
         r = self.read()
-        workobj   = json.loads(r)
-        self.dbglog("Got response...", workobj)
+        workobj = json.loads(r)
+        self.log.trace(workobj)
+        
         if workobj['type'] == 'userlog':
-          if self.getVerbose() > 0:
-            print ('[server message] %s' % (workobj['content']['source'])) 
-            continue
+          self.log.ulog(workobj)
+          continue
+          # if self.getVerbose() > 0:
+          #   self.log.info('[server message] %s' % (workobj['content']['source']))
+          #   #print ('[server message] %s' % (workobj['content']['source'])) 
+          #   continue
         if workobj['type'] != 'response': 
             continue
         if workobj['content']['error'] != 'None': 
@@ -459,19 +581,23 @@ class Pollenc:
   
       rmfile(self.workzip)
   
-      self.dbglog("Got workobj...", workobj)
-      self.timeMsg("Compiling files", starttime)
+
+      self.log.trace(workobj)
+      # self.dbglog("Got workobj...", workobj)
+      # self.timeMsg("Compiling files", starttime)
       b64 = workobj['content']['source']
       zipbytes = base64.b64decode(b64)
       origpath = os.getcwd()
       os.chdir(self.args.outdir)
       self.unzip(zipbytes)
       os.chdir(origpath)
-      self.printStdOut() #look for stderr and output path
-      print ("Cloud compiler done.")
-      if self.getVerbose() > 0:
-        print ("\nOutput files are in " + self.args.outdir)
-        self.printStdErr() #look for stderr and output path
+
+      self.log.info("Build complete. Output files are in " + self.args.outdir)
+
+      # self.printStdOut() #look for stderr and output path
+      # if self.getVerbose() > 0:
+      #   print ("\nOutput files are in " + self.args.outdir)
+      #   self.printStdErr() #look for stderr and output path
 
 
 if __name__ == "__main__":
