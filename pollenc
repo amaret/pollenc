@@ -348,7 +348,7 @@ class Pollenc:
       tmpdir = '/tmp/' + self.workname
 
       if len(ptmp) > 0:
-        self.log.debug("C directory included: %s" % str(ptmp, 1))      
+        self.log.debug("C directory included: %s" % str(ptmp))      
 
 
       for src in ptmp:

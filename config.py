@@ -7,7 +7,7 @@ mongo = {
 }
 
 pollenc_tcp = {
-  'interface': 'pcc.amaret.com', 
+  'interface': 'ec2-50-19-89-134.compute-1.amazonaws.com', #'pcc.amaret.com', 
   'port': 5140,
 }
 
