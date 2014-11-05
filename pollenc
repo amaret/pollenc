@@ -2,7 +2,7 @@
 
 # Copyright 2014 Amaret Inc. All rights reserved.
 
-import config
+import configc
 import datetime
 import sys
 import subprocess
@@ -544,11 +544,11 @@ class Pollenc:
     jsonstr = json.dumps(jsonobj)
     jlen = len(jsonstr)
 
-    if jlen > config.clcConstants["MAX_MSG_SIZE"]:
-       MAX = config.clcConstants["MAX_MSG_SIZE"]
+    if jlen > configc.clcConstants["MAX_MSG_SIZE"]:
+       MAX = configc.clcConstants["MAX_MSG_SIZE"]
        msg = str(("Request to upload %i bytes is refused. Upload size exceeds Pollen cloud compiler maximum of %i bytes.") % (jlen, MAX))
        print msg
-       if jlen * 2 < config.clcConstants["MAX_MSG_SIZE"]:
+       if jlen * 2 < configc.clcConstants["MAX_MSG_SIZE"]:
            print "Contact Amaret if you need an SDK C bundle for a target architecture installed in the cloud."
        sys.exit(1)
 
@@ -627,14 +627,14 @@ if __name__ == "__main__":
             'Path prefixed with "@" is on server, else will be uploaded.')
   parser.add_argument('-e', '--environment', dest='env', action='store', help=helpStr, required=False)
 
-  tcpHost = config.pollenc_tcp['interface']
+  tcpHost = configc.pollenc_tcp['interface']
   parser.add_argument('--host', dest='host', action='store', help=argparse.SUPPRESS, default=tcpHost)
 
   parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
 
   parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
 
-  tcpPort = config.pollenc_tcp['port']
+  tcpPort = configc.pollenc_tcp['port']
   parser.add_argument('--port', dest='port', action='store', help=argparse.SUPPRESS, default=tcpPort, type=int)
 
   parser.add_argument('--props', dest='props', action='store', \
