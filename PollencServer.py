@@ -189,7 +189,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         rmmonitor.send({'host': config.riemann['host'], \
             'service': 'pollenc exception', 'metric': 1, \
             'description': 'pollenc txn failed', \
-            'tags': ["pollenc_server"], \
+            'tags': ["pollenc_server_job"], \
             'state': state})
         return
 
@@ -209,7 +209,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         rmmonitor.send({'host': config.riemann['host'], \
             'service': 'pollencs txn_dur', 'metric': mdur, \
             'description': 'pollencs txn duration in milliseconds', \
-            'tags': ["pollenc_server"], \
+            'tags': ["pollenc_server_job"], \
             'state': state})
         return
 
