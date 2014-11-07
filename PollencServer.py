@@ -23,7 +23,6 @@ REDIS_HOST = ""
 REDIS_PORT = 0
 TCP_HOST= ''
 TCP_PORT= 0
-CLIENT_HOST = ''
 
 ERROR_MSG_OBJ = {
                 'tid': 0, 
@@ -172,7 +171,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                     continue       # a log message
 
                 break     
+
             self.sendStats(starttime)     
+
         except Exception, e:
             self.handleError(str(e))
         except:
@@ -185,7 +186,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def sendErrorStats(self):
         state = 'warning'
-        rmmonitor.send({'host': CLIENT_HOST, 'service': 'pollenc exception', 'metric': 1, 'description': 'pollenc txn failed', 'state': state})
+        rmmonitor.send({'host': config.riemann['host'], \
+            'service': 'pollenc exception', 'metric': 1, \
+            'description': 'pollenc txn failed', \
+            'tags': ["pollenc_server"], \
+            'state': state})
         return
 
     def sendStats(self, starttime):
@@ -201,9 +206,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             state = 'warning'
         elif mdur > 10000:
             state = 'critical'
-        rmmonitor.send({'host': CLIENT_HOST, 'service': 'pollenc txn-dur', \
-                'metric': mdur, 'description': 'pollenc txn duration in milliseconds', \
-                'state': state})
+        rmmonitor.send({'host': config.riemann['host'], \
+            'service': 'pollencs txn_dur', 'metric': mdur, \
+            'description': 'pollencs txn duration in milliseconds', \
+            'tags': ["pollenc_server"], \
+            'state': state})
         return
 
     def logexception(self, includetraceback = 0):
@@ -232,7 +239,6 @@ if __name__ == '__main__':
     REDIS_PORT = config.redis['port']
     TCP_HOST = socket.getfqdn() # on aws this is internal name, which works.
     TCP_PORT = config.pollenc_tcp['port']
-    CLIENT_HOST = socket.gethostbyname(socket.gethostname()) # riemann client
 
     syslog.syslog(syslog.LOG_INFO, 'service starting using redis host %s:%s' % ((REDIS_HOST, REDIS_PORT))) 
     
