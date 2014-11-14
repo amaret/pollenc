@@ -15,9 +15,9 @@ import syslog
 import json
 import traceback
 import socket
-from riemann import RiemannClient, RiemannUDPTransport
+import RiemannMonitor
 
-rmmonitor = RiemannClient(transport = RiemannUDPTransport, host=config.riemann['host'])
+rmmonitor = None
 
 REDIS_HOST = ""
 REDIS_PORT = 0
@@ -139,6 +139,10 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             dataobj = ''
             syslog.syslog(syslog.LOG_DEBUG, 'total bytes read: %i' % (len(data)))
+            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
+                starttime, \
+                'pollenc_server recv_from_client_dur', \
+                'pollenc_server recv from client duration in milliseconds')
                         
             try:
                 dataobj = json.loads(data)
@@ -157,22 +161,45 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["token"])
             dataobj["reply"] = responseQueue
             qname = self.getQName(dataobj['compiler']);
-            # send the compile request to worker
-            self.write(qname, json.dumps(dataobj))
 
+            # send the compile request to worker
+            sendstarttime = datetime.datetime.now()
+            self.write(qname, json.dumps(dataobj))
+            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
+                sendstarttime, \
+                'pollenc_server send_to_wkr_dur', \
+                'pollenc_server send to worker duration in milliseconds')
+
+            recvstarttime = datetime.datetime.now()
+            sendstarttime = datetime.datetime.now()
             while True:
                 # get the worker response from response queue
                 response = self.read(responseQueue)
+                dataobj = json.loads(response)
+                if dataobj['type'] == 'response':
+                    rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
+                        recvstarttime, \
+                        'pollenc_server recv_from_wkr_dur', \
+                        'pollenc_server recv from worker includes compile duration in milliseconds')
+                    sendstarttime = datetime.datetime.now()
                 hmsg = "%i\n%s" % (len(response), response)
+
                 # send worker response to client
                 self.request.send(hmsg)
-                dataobj = json.loads(response)
                 if dataobj['type'] != 'response':
                     continue       # a log message
 
                 break     
 
-            self.sendStats(starttime)     
+            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
+                sendstarttime, \
+                'pollenc_server send_to_client_dur', \
+                'pollenc_server send to client duration in milliseconds')
+
+            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
+                starttime, \
+	        'pollenc_server total txn_dur', \
+                'pollenc_server total txn duration in milliseconds') 
 
         except Exception, e:
             self.handleError(str(e))
@@ -185,32 +212,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         return
 
     def sendErrorStats(self):
-        state = 'warning'
-        rmmonitor.send({'host': config.riemann['host'], \
-            'service': 'pollenc exception', 'metric': 1, \
-            'description': 'pollenc txn failed', \
-            'tags': ["pollenc_server_job"], \
-            'state': state})
-        return
-
-    def sendStats(self, starttime):
-        stoptime = datetime.datetime.now()
-        dur = stoptime - starttime
-        mdur = dur.microseconds
-        if mdur > 0:
-            mdur = mdur / 1000 # we only care about milliseconds
-        else:
-            raise Exception('PollenServer: impossible duration %s' % (mdur))
-        state = 'ok'
-        if mdur > 1000:
-            state = 'warning'
-        elif mdur > 10000:
-            state = 'critical'
-        rmmonitor.send({'host': config.riemann['host'], \
-            'service': 'pollencs txn_dur', 'metric': mdur, \
-            'description': 'pollencs txn duration in milliseconds', \
-            'tags': ["pollenc_server_job"], \
-            'state': state})
+        rmmonitor.send_error_event({ 'tags': ["pollenc_server_job"] }, \
+            'pollenc_server exception', \
+            'pollenc_server txn failed')
         return
 
     def logexception(self, includetraceback = 0):
@@ -229,12 +233,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class PollencServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-  pass
-
+    pass
 
 if __name__ == '__main__':
 
-
+    rmmonitor = RiemannMonitor.RiemannMonitor()
     REDIS_HOST = config.redis['host']
     REDIS_PORT = config.redis['port']
     TCP_HOST = socket.getfqdn() # on aws this is internal name, which works.
