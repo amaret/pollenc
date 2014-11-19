@@ -21,6 +21,7 @@ rmmonitor = None
 
 REDIS_HOST = ""
 REDIS_PORT = 0
+REDIS_MAXWAIT = 600
 TCP_HOST= ''
 TCP_PORT= 0
 
@@ -31,13 +32,29 @@ ERROR_MSG_OBJ = {
                 'service': 'compile', 
                 'user': {
                     'id': 0, 
-                    'name': 
-                    'None'
+                    'name': 'None'
                     }, 
                 'project': {
                     'id': 0, 
-                    'name': 
-                    'None'
+                    'name': 'None'
+                    }, 
+                'content' : {
+                    'content': 'None', 
+                    'filename': 'None'
+                    }
+                }
+LOG_MSG_OBJ = {
+                'tid': 0, 
+                'aid': 0, 
+                'type': 'userlog', 
+                'service': 'compile', 
+                'user': {
+                    'id': 0, 
+                    'name': 'None'
+                    }, 
+                'project': {
+                    'id': 0, 
+                    'name': 'None'
                     }, 
                 'content' : {
                     'content': 'None', 
@@ -63,12 +80,34 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     def write(self, qname, dstr):
       syslog.syslog(syslog.LOG_DEBUG, 'redis push: queue %s' % (qname) )
       self.getRdis().lpush(qname, dstr);
+
+    def readwait(self, wait, replyQueue):
+        if (wait <= 0):
+            self.handleError('bad response from clc: blocked on redis pop')
+            raise Exception('bad response from clc: blocked on redis pop')
+        self.sendUserLog('NOTICE', 'server delay: waiting on redis queue...')
+        response = self.getRdis().brpop(keys=[replyQueue], timeout=60);
+        if (not response) :
+            syslog.syslog(syslog.LOG_INFO, 'redis queue wait (60 sec)')
+            response = self.readwait(wait - 60, replyQueue)
+        if (not len(response) == 2) :
+            raise Exception('bad response from clc: %s' % (response))
+        return response
+
     
     def read(self, replyQueue):
         syslog.syslog(syslog.LOG_DEBUG, 'redis pop: queue key %s' % (replyQueue) )
+        starttime = datetime.datetime.now()
         response = self.getRdis().brpop(keys=[replyQueue], timeout=30);
-        if ( not response or not len(response) == 2) :
+        if (not response) :
+            syslog.syslog(syslog.LOG_INFO, 'redis queue wait (30 sec)')
+            response = self.readwait(REDIS_MAXWAIT, replyQueue)
+        if (not len(response) == 2) :
             raise Exception('bad response from clc: %s' % (response))
+        rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
+            starttime, \
+            'pollenc_server redis_brpop_wait', \
+            'pollenc_server redis brpop wait duration in milliseconds')
         return response[1]
 
     def handleError(self, etxt):
@@ -79,6 +118,15 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         emsgtxt = json.dumps(ERROR_MSG_OBJ)
         hmsg = "%i\n%s" % (len(emsgtxt), emsgtxt)
         self.request.send(hmsg)
+
+
+    def sendUserLog(self, level, msg):
+        content = {'level': level, 'source': msg}
+        LOG_MSG_OBJ['content'] = content
+        emsgtxt = json.dumps(LOG_MSG_OBJ)
+        hmsg = "%i\n%s" % (len(emsgtxt), emsgtxt)
+        self.request.send(hmsg)
+
 
     def validateToken(self, token):
         #WindData is the mongo database (I think)
@@ -172,6 +220,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             recvstarttime = datetime.datetime.now()
             sendstarttime = datetime.datetime.now()
+
+            LOG_MSG_OBJ['tid'] =  dataobj['tid']
+            LOG_MSG_OBJ['aid'] =  dataobj['aid']
+            LOG_MSG_OBJ['user'] = dataobj['user']
+
             while True:
                 # get the worker response from response queue
                 response = self.read(responseQueue)
