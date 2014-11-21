@@ -283,17 +283,17 @@ class Pollenc:
     #
 
  
-  def svrTime(self):
-     client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-     data = '\x1b' + 47 * '\0'
-     tcpHost = configc.pollenc_tcp['interface']
-     client.sendto( data, ( tcpHost, 123 ))
-     data, address = client.recvfrom( 1024 )
-     if data:
-         t = struct.unpack( '!12I', data )[10]
-         t -= TIME1970
-         dt = datetime.datetime.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y")
-         return dt
+  #def svrTime(self):
+  #   client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+  #   data = '\x1b' + 47 * '\0'
+  #   tcpHost = configc.pollenc_tcp['interface']
+  #   client.sendto( data, ( tcpHost, 123 ))
+  #   data, address = client.recvfrom( 1024 )
+  #   if data:
+  #       t = struct.unpack( '!12I', data )[10]
+  #       t -= TIME1970
+  #       dt = datetime.datetime.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y")
+  #       return dt
 
   def timeMsg(self, task, starttime):
        if self.getVerbose() < 3:
@@ -542,7 +542,9 @@ class Pollenc:
       'trace': self.trace,
       'props': self.props,
       'cflags': self.args.cflags,
-      'xferstarttime' : self.svrTime().isoformat(),
+      # svrTime() didn't work when svr busy but using 
+      # client local time won't give valid results.
+      'xferstarttime' : datetime.datetime.now().isoformat(),
       'user': {
         'token': self.args.userid, 
         'id': 0, 
