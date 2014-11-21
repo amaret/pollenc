@@ -204,6 +204,12 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 self.handleError(etxt)
                 return
 
+            sendstarttime = dataobj['starttime']
+            rmmonitor.send_timing_event({'tags': ["network_transfer"]}, \
+                sendstarttime, \
+                'pollenc_client xfer_to_svr', \
+                'pollenc_client send to server duration in milliseconds')
+
             syslog.syslog(syslog.LOG_INFO, 'pollenc worker invoked for token %s' % (token))
             cur_thread = threading.currentThread()
             responseQueue = 'POLLENC_REPLYTO_QUEUE_%s_%s' % (cur_thread.getName(), dataobj["user"]["token"])
