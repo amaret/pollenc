@@ -5,6 +5,7 @@
 #import WindData    (mongo database, or something. For tokens)
 import sys
 import datetime
+import dateutil.parser
 import os
 import config
 import SocketServer
@@ -15,7 +16,10 @@ import syslog
 import json
 import traceback
 import socket
+sys.path.insert(1, "/home/ops/repos/amaret.pylib/riemann")
 import RiemannMonitor
+sys.path.insert(1, "/home/ops/repos/amaret.pylib/email")
+import Email
 
 rmmonitor = None
 
@@ -83,14 +87,16 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
     def readwait(self, wait, replyQueue):
         if (wait <= 0):
+            self.sendEmail('urgent', "Server blocked on redis pop. Server returned 'bad response' to user.")
             self.handleError('bad response from clc: blocked on redis pop')
             raise Exception('bad response from clc: blocked on redis pop')
-        self.sendUserLog('NOTICE', 'server delay: waiting on redis queue...')
+        self.sendUserLog('NOTICE', 'server delay: waiting on compile job queue...')
         response = self.getRdis().brpop(keys=[replyQueue], timeout=60);
         if (not response) :
             syslog.syslog(syslog.LOG_INFO, 'redis queue wait (60 sec)')
             response = self.readwait(wait - 60, replyQueue)
         if (not len(response) == 2) :
+            self.sendEmail('urgent', "Server gets bad response from worker. Server returned 'bad response' to user.")
             raise Exception('bad response from clc: %s' % (response))
         return response
 
@@ -101,8 +107,10 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         response = self.getRdis().brpop(keys=[replyQueue], timeout=30);
         if (not response) :
             syslog.syslog(syslog.LOG_INFO, 'redis queue wait (30 sec)')
+            self.sendEmail('serious', "Server slow: waiting on redis pop.")
             response = self.readwait(REDIS_MAXWAIT, replyQueue)
         if (not len(response) == 2) :
+            self.sendEmail('urgent', "Server gets bad response from worker. Server returned 'bad response' to user.")
             raise Exception('bad response from clc: %s' % (response))
         rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
             starttime, \
@@ -126,6 +134,13 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         emsgtxt = json.dumps(LOG_MSG_OBJ)
         hmsg = "%i\n%s" % (len(emsgtxt), emsgtxt)
         self.request.send(hmsg)
+
+    def sendEmail(self, severe, msg):
+        txt = Email.getEmail('clc_msg.txt')
+        txt = txt.replace('[[ hostname ]]', socket.gethostname())
+        txt = txt.replace('[[ severity ]]', severe)
+        txt = txt.replace('[[ message ]]', msg)
+        Email.send("ops@amaret.com", "ops@amaret.com", "Cloud Compiler Message", txt)
 
 
     def validateToken(self, token):
@@ -151,6 +166,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             while True:
                 b = self.request.recv(1)
                 if b == '':
+                    self.sendEmail('warning', "recv returned unexpectedly, rejecting compile job.")
                     syslog.syslog(syslog.LOG_WARNING, 'recv returned unexpectedly, rejecting.')
                     return
                 if b == '\n':
@@ -158,6 +174,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                     break
                 hlenRec += b
                 if len(hlenRec) > 10:
+                    self.sendEmail('warning', "recv returned unexpectedly, rejecting compile job.")
                     syslog.syslog(syslog.LOG_WARNING, 'rejecting bad header: %s' % (hlenRec))
                     self.request.send('invalid header: %s\n' % (hlenRec))
                     return
@@ -204,9 +221,9 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 self.handleError(etxt)
                 return
 
-            sendstarttime = dataobj['starttime']
+            xferstarttime = dateutil.parser.parse(dataobj['xferstarttime'])
             rmmonitor.send_timing_event({'tags': ["network_transfer"]}, \
-                sendstarttime, \
+                xferstarttime, \
                 'pollenc_client xfer_to_svr', \
                 'pollenc_client send to server duration in milliseconds')
 
@@ -218,6 +235,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             # send the compile request to worker
             sendstarttime = datetime.datetime.now()
+            dataobj['xferstarttime'] = sendstarttime.isoformat()
             self.write(qname, json.dumps(dataobj))
             rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
                 sendstarttime, \
@@ -236,6 +254,11 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 response = self.read(responseQueue)
                 dataobj = json.loads(response)
                 if dataobj['type'] == 'response':
+                    xferstarttime = dateutil.parser.parse(dataobj['xferstarttime'])
+                    rmmonitor.send_timing_event({'tags': ["network_transfer"]}, \
+                        xferstarttime, \
+                        'redisque_wait_wkr_to_svr', \
+                        'redisque_wait xfer from wkr to svr duration in milliseconds')
                     rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
                         recvstarttime, \
                         'pollenc_server recv_from_wkr_dur', \
