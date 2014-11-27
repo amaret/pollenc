@@ -19,7 +19,6 @@ import hashlib
 import socket
 import struct
 from os.path import isfile, join
-
 import textwrap
 
 
@@ -281,19 +280,22 @@ class Pollenc:
     #
     # end comm
     #
-
  
-  #def svrTime(self):
-  #   client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-  #   data = '\x1b' + 47 * '\0'
-  #   tcpHost = configc.pollenc_tcp['interface']
-  #   client.sendto( data, ( tcpHost, 123 ))
-  #   data, address = client.recvfrom( 1024 )
-  #   if data:
-  #       t = struct.unpack( '!12I', data )[10]
-  #       t -= TIME1970
-  #       dt = datetime.datetime.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y")
-  #       return dt
+  # roll our own to avoid nonstandard ntplib dependency
+  def ntpTime(self):
+      address = ("pool.ntp.org",123)
+      data = '\x1b' + 47 * '\0'
+      # connect to server
+      client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+      client.sendto(data, address)
+      data, address = client.recvfrom( 1024 )
+      if data:
+          t = struct.unpack( '!12I', data )[10]
+          t -= TIME1970
+          dt = datetime.datetime.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y").isoformat()
+      else:
+          dt = datetime.datetime.now().isoformat()
+      return dt
 
   def timeMsg(self, task, starttime):
        if self.getVerbose() < 3:
@@ -481,9 +483,6 @@ class Pollenc:
         r = l[llen -3] + '/' + l[llen -2] + '/' + l[llen -1]
         return r
 
-  # verbose output shows the phases for users.
-  # trace output has internal info for debugging.
-  # if trace is true verbose is set to false
   def dbglog(self, phase, msg=None):
       if not self.verbose and not self.trace:
         return
@@ -542,9 +541,9 @@ class Pollenc:
       'trace': self.trace,
       'props': self.props,
       'cflags': self.args.cflags,
-      # svrTime() didn't work when svr busy but using 
+      # ntpTime() didn't work when svr busy but using 
       # client local time won't give valid results.
-      'xferstarttime' : datetime.datetime.now().isoformat(),
+      'xferstarttime' : self.ntpTime(),
       'user': {
         'token': self.args.userid, 
         'id': 0, 
@@ -554,6 +553,21 @@ class Pollenc:
         'source':  b64data, 
         'entry': self.getRelToTmpDirName(self.args.entry),
         'mcu': self.args.mcu
+      },
+      'times' :  {                          # all milliseconds
+        'trans_client_to_pcc':  0,          # time to transmit code zip file from client to pcc
+        'trans_pcc_to_redis':  0,           # time to transmit code zip file from pcc to client
+        'redisqueue_wait_for_worker': 0,    # time waiting in queue for worker
+        'trans_redis_to_worker': 0,         # time to transmit code zip file from redis to worker
+        'worker_start_prep': 0,             # time to unzip and prepare files
+        'pollen': 0,                        # time to run pollen translator
+        'gcc': 0,                           # time to run gcc compile
+        'objcopy': 0,                       # time to run objcopy
+        'worker_end_prep': 0,               # time to to zip completed job for return
+        'trans_worker_to_redis': 0,         # time to transmit zip completed job for redis
+        'redisqueue_wait_for_pcc': 0,       # time waiting in queue for server
+        'trans_redis_to_pcc': 0,            # time to transmit completed job to pcc
+        'trans_pcc_to_client':  0,          # time to transmit completed job to client
       }
     }
 
@@ -567,7 +581,7 @@ class Pollenc:
        MAX = configc.clcConstants["MAX_MSG_SIZE"]
        msg = str(("Request to upload %i bytes is refused. Upload size exceeds Pollen cloud compiler maximum of %i bytes.") % (jlen, MAX))
        print msg
-       if jlen * 2 < configc.clcConstants["MAX_MSG_SIZE"]:
+       if jlen * 2 > MAX: 
            print "Contact Amaret if you need an SDK C bundle for a target architecture installed in the cloud."
        sys.exit(1)
 
@@ -603,7 +617,6 @@ class Pollenc:
   
 
       self.log.trace(workobj)
-      # self.dbglog("Got workobj...", workobj)
       # self.timeMsg("Compiling files", starttime)
       b64 = workobj['content']['source']
       zipbytes = base64.b64decode(b64)
@@ -615,9 +628,7 @@ class Pollenc:
       self.log.info("Build complete. Output files are in " + self.args.outdir)
 
       # self.printStdOut() #look for stderr and output path
-      # if self.getVerbose() > 0:
-      #   print ("\nOutput files are in " + self.args.outdir)
-      #   self.printStdErr() #look for stderr and output path
+      # self.printStdErr() #look for stderr and output path
 
 
 if __name__ == "__main__":
