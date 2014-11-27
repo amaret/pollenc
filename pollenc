@@ -541,8 +541,6 @@ class Pollenc:
       'trace': self.trace,
       'props': self.props,
       'cflags': self.args.cflags,
-      # ntpTime() didn't work when svr busy but using 
-      # client local time won't give valid results.
       'xferstarttime' : self.ntpTime(),
       'user': {
         'token': self.args.userid, 
