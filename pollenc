@@ -553,19 +553,24 @@ class Pollenc:
         'mcu': self.args.mcu
       },
       'times' :  {                          # all milliseconds
-        'trans_client_to_pcc':  0,          # time to transmit code zip file from client to pcc
-        'trans_pcc_to_redis':  0,           # time to transmit code zip file from pcc to client
-        'redisqueue_wait_for_worker': 0,    # time waiting in queue for worker
-        'trans_redis_to_worker': 0,         # time to transmit code zip file from redis to worker
-        'worker_start_prep': 0,             # time to unzip and prepare files
-        'pollen': 0,                        # time to run pollen translator
-        'gcc': 0,                           # time to run gcc compile
-        'objcopy': 0,                       # time to run objcopy
-        'worker_end_prep': 0,               # time to to zip completed job for return
-        'trans_worker_to_redis': 0,         # time to transmit zip completed job for redis
-        'redisqueue_wait_for_pcc': 0,       # time waiting in queue for server
-        'trans_redis_to_pcc': 0,            # time to transmit completed job to pcc
-        'trans_pcc_to_client':  0,          # time to transmit completed job to client
+        'client_transmit_to_pcc':  0,       # time to transmit job from client to pcc
+        'pcc_read_client_job':  0,          # time for pcc to read/load/validate
+
+        'redis_push_for_worker':  0,        # time to push job from pcc to redis
+        'redis_wait_for_worker': 0,         # time waiting in queue for worker
+        'redis_pop_for_worker': 0,          # time to transmit job from redis to worker
+
+        'worker_prepare_job': 0,            # time to unzip and prepare files
+        'worker_run_pollen': 0,             # time to run pollen translator
+        'worker_run_gcc': 0,                # time to run gcc compile
+        'worker_run_objcopy': 0,            # time to run objcopy
+        'worker_finalize_job': 0,           # time to to zip completed job for return
+
+        'redis_wait_for_pcc': 0,            # time waiting in queue for pcc
+        'redis_pop_for_pcc':  0,            # time for pcc to pop redis queue
+
+        'pcc_total_time':  0,               # time pcc spent on job
+        'pcc_transmit_to_client':  0,       # time to transmit completed job to client
       }
     }
 
@@ -613,6 +618,7 @@ class Pollenc:
   
       rmfile(self.workzip)
   
+      print str(workobj['times'])
 
       self.log.trace(workobj)
       # self.timeMsg("Compiling files", starttime)
