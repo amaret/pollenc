@@ -289,11 +289,14 @@ class Pollenc:
       client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
       client.sendto(data, address)
       data, address = client.recvfrom( 1024 )
+      client.close()
       if data:
+          print "Success: could get ntp time"
           t = struct.unpack( '!12I', data )[10]
           t -= TIME1970
           dt = datetime.datetime.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y").isoformat()
       else:
+          print "Warning: could not get ntp time"
           dt = datetime.datetime.now().isoformat()
       return dt
 
