@@ -16,9 +16,9 @@ import syslog
 import json
 import traceback
 import socket
-sys.path.insert(1, "/home/ops/repos/amaret.pylib/riemann")
+sys.path.insert(1, "/home/ops/repos/amaret.pylib/amaret/riemann")
 import RiemannMonitor
-sys.path.insert(1, "/home/ops/repos/amaret.pylib/email")
+sys.path.insert(1, "/home/ops/repos/amaret.pylib/amaret/email")
 import Email
 
 rmmonitor = None
@@ -66,6 +66,12 @@ LOG_MSG_OBJ = {
                     }
                 }
 
+def syslog_trace(trace):
+  log_lines = trace.split('\n')
+  for line in log_lines:
+      if len(line):
+          syslog.syslog(syslog.LOG_WARNING, line)
+
 
 class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
@@ -112,15 +118,13 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         if (not len(response) == 2) :
             self.sendEmail('urgent', "Server gets bad response from worker. Server returned 'bad response' to user.")
             raise Exception('bad response from clc: %s' % (response))
-        rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
-            starttime, \
-            'pollenc_server redis_brpop_wait', \
-            'pollenc_server redis brpop wait duration in milliseconds')
+        # time the brpop redis delay
+        self.sendTime( starttime, 'pollenc_server redis_brpop_wait')
         return response[1]
 
     def handleError(self, etxt):
         syslog.syslog(syslog.LOG_ERR, etxt)
-        traceback.print_exc(file=sys.stdout)
+        syslog_trace(traceback.format_exc())
         self.sendErrorStats()     
         ERROR_MSG_OBJ['content']['error'] = etxt
         emsgtxt = json.dumps(ERROR_MSG_OBJ)
@@ -142,6 +146,20 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
         txt = txt.replace('[[ message ]]', msg)
         Email.send("ops@amaret.com", "ops@amaret.com", "Cloud Compiler Message", txt)
 
+    def saveTime(self, starttime, field, rec, stoptime=None):
+        if stoptime == None:
+            stoptime = datetime.datetime.now()
+        dur = stoptime - starttime
+        mdur = dur.total_seconds() * 1000 # we only care about milliseconds
+        rec[field] = mdur
+
+    def sendTime(self, starttime, info, tag='pollenc_server_job', stoptime=None):
+        moreInfo = info + ' duration in milliseconds'
+        rmmonitor.send_timing_event({'tags': [tag]}, \
+            starttime, \
+            info, \
+            moreInfo, \
+            stoptime)
 
     def validateToken(self, token):
         #WindData is the mongo database (I think)
@@ -157,6 +175,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
     #
 
     def handle(self):
+
         starttime = datetime.datetime.now()
         # get the compile request
         try:
@@ -174,7 +193,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                     break
                 hlenRec += b
                 if len(hlenRec) > 10:
-                    self.sendEmail('warning', "recv returned unexpectedly, rejecting compile job.")
+                    self.sendEmail('warning', "rejecting bad header.")
                     syslog.syslog(syslog.LOG_WARNING, 'rejecting bad header: %s' % (hlenRec))
                     self.request.send('invalid header: %s\n' % (hlenRec))
                     return
@@ -204,11 +223,7 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
             dataobj = ''
             syslog.syslog(syslog.LOG_DEBUG, 'total bytes read: %i' % (len(data)))
-            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
-                starttime, \
-                'pollenc_server recv_from_client_dur', \
-                'pollenc_server recv from client duration in milliseconds')
-                        
+
             try:
                 dataobj = json.loads(data)
             except ValueError, e:
@@ -221,11 +236,15 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
                 self.handleError(etxt)
                 return
 
+            # time read, load, validate of client job by server
+            self.saveTime(starttime, 'pcc_read_client_job', dataobj['times'])
+            self.sendTime(starttime, 'pollenc_server recv_from_client_dur')
+                        
+            # time transfer of job from client to server
             xferstarttime = dateutil.parser.parse(dataobj['xferstarttime'])
-            rmmonitor.send_timing_event({'tags': ["network_transfer"]}, \
-                xferstarttime, \
-                'pollenc_client xfer_to_svr', \
-                'pollenc_client send to server duration in milliseconds')
+            # using starttime as end time subtracts read/load/validate from transfer time
+            self.saveTime(xferstarttime, 'client_transmit_to_pcc', dataobj['times'], starttime)
+            self.sendTime(xferstarttime, 'pollenc_client xfer_to_svr', "network_transfer", starttime)
 
             syslog.syslog(syslog.LOG_INFO, 'pollenc worker invoked for token %s' % (token))
             cur_thread = threading.currentThread()
@@ -233,37 +252,42 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
             dataobj["reply"] = responseQueue
             qname = self.getQName(dataobj['compiler']);
 
-            # send the compile request to worker
+            # time write of job request to redis queue
             sendstarttime = datetime.datetime.now()
             dataobj['xferstarttime'] = sendstarttime.isoformat()
-            self.write(qname, json.dumps(dataobj))
-            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
-                sendstarttime, \
-                'pollenc_server send_to_wkr_dur', \
-                'pollenc_server send to worker duration in milliseconds')
+            self.write(qname, json.dumps(dataobj)) # send the compile request to worker
+            self.saveTime(sendstarttime, 'redis_push_for_worker', dataobj['times'])
+            self.sendTime(sendstarttime, 'pollenc_server send_to_wkr_dur')
 
-            recvstarttime = datetime.datetime.now()
-            sendstarttime = datetime.datetime.now()
 
             LOG_MSG_OBJ['tid'] =  dataobj['tid']
             LOG_MSG_OBJ['aid'] =  dataobj['aid']
             LOG_MSG_OBJ['user'] = dataobj['user']
 
             while True:
+                recvstarttime = datetime.datetime.now()
                 # get the worker response from response queue
                 response = self.read(responseQueue)
                 dataobj = json.loads(response)
                 if dataobj['type'] == 'response':
+
+                    # time wait in redis queue since worker inserted job
                     xferstarttime = dateutil.parser.parse(dataobj['xferstarttime'])
-                    rmmonitor.send_timing_event({'tags': ["network_transfer"]}, \
-                        xferstarttime, \
-                        'redisque_wait_wkr_to_svr', \
-                        'redisque_wait xfer from wkr to svr duration in milliseconds')
-                    rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
-                        recvstarttime, \
-                        'pollenc_server recv_from_wkr_dur', \
-                        'pollenc_server recv from worker includes compile duration in milliseconds')
-                    sendstarttime = datetime.datetime.now()
+            	    self.saveTime(xferstarttime, 'redis_wait_for_pcc', dataobj['times'], recvstarttime)
+                    self.sendTime(xferstarttime, 'redisque_wait_wkr_to_svr', "network_transfer", recvstarttime)
+
+                    # time read of worker response from redis queue
+            	    self.saveTime(recvstarttime, 'redis_pop_for_pcc', dataobj['times'])
+                    self.sendTime(recvstarttime, 'pollenc_server recv_from_wkr_dur')
+
+		    # set start for transfer time to client
+                    xferstarttime = datetime.datetime.now()
+                    dataobj['xferstarttime'] = xferstarttime.isoformat()
+
+                    # time total for transaction (but does not include send))
+                    self.saveTime(starttime, 'pcc_total_time', dataobj['times'])
+
+
                 hmsg = "%i\n%s" % (len(response), response)
 
                 # send worker response to client
@@ -273,15 +297,8 @@ class PollencRequestHandler(SocketServer.BaseRequestHandler):
 
                 break     
 
-            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
-                sendstarttime, \
-                'pollenc_server send_to_client_dur', \
-                'pollenc_server send to client duration in milliseconds')
-
-            rmmonitor.send_timing_event({'tags': ["pollenc_server_job"]}, \
-                starttime, \
-	        'pollenc_server total txn_dur', \
-                'pollenc_server total txn duration in milliseconds') 
+            # time total for transaction (from pcc point of view)
+            self.sendTime(starttime, 'pollenc_server total txn_dur')
 
         except Exception, e:
             self.handleError(str(e))
