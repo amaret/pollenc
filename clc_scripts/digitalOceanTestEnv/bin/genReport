@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# gen report 
+# run the generated command to create statistics for the run.
+# Arg1: the results directory
+# Arg2: a file with times for each whole test run. Optional.
+
+export RSLTS=$1
+
+mv $RSLTS/*load* $RSLTS/OLD/.
+chmod +x runBuildStats
+. runBuildStats
+suf=$(( ( RANDOM % 1000 )  + 1 ))
+export RPT=report.`hostname`.`date +%m_%d_%y.${suf}`
+cd $RSLTS
+echo  "generating report on cloud compiler performance `date +%m.%d.%y`"
+echo  "Report on cloud compiler performance `date +%m.%d.%y`" > $RPT
+for i in `ls *load* | sort -V`; do 
+  echo      >> $RPT
+  echo "=== " $i " ==="      >> $RPT
+  cat $i      >> $RPT
+done;
+
+# output the time for the test run. measures throughput.
+if [[ $# -eq 2 ]]; then
+    echo  >> $RPT
+    echo "=== " "Times for each (whole) parameterized test run."  " ===" >> $RPT
+    echo "`cat $2`" >> $RPT
+fi

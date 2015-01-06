@@ -1,0 +1,32 @@
+#!/bin/bash
+# Control for pollen workers
+# Arg1: start, stop
+# Arg2: a worker number or 'all' 
+
+
+if [[ $# -ne 2 ]]
+then
+  echo "Required args are: Arg1: start or stop, Arg2: a worker number or 'all' (all workers, limit 10)"
+  exit 1
+fi
+
+action=""
+case $1 in 
+start) action="start"
+ ;;
+stop)  action="stop"
+ ;;
+*)  echo $1 " is an invalid action"; exit 1
+ ;;
+esac
+
+case $2 in 
+all) ssh -i ~/.ssh/vpc-back.pem ops@ec2-54-172-131-124.compute-1.amazonaws.com \
+        "sudo initctl '${action}' PollenEfm32GccWorker1; sudo initctl '${action}' PollenEfm32GccWorker2; sudo initctl '${action}' PollenEfm32GccWorker3;sudo initctl '${action}' PollenEfm32GccWorker4;sudo initctl '${action}' PollenEfm32GccWorker5;sudo initctl '${action}' PollenEfm32GccWorker6;sudo initctl '${action}' PollenEfm32GccWorker7;sudo initctl '${action}' PollenEfm32GccWorker8;sudo initctl '${action}' PollenEfm32GccWorker9;sudo initctl '${action}' PollenEfm32GccWorker10"
+     ;;
+*) ssh -i ~/.ssh/vpc-back.pem ops@ec2-54-172-131-124.compute-1.amazonaws.com \
+     "sudo initctl '${action}' PollenEfm32GccWorker'${2}'"
+     exit 0
+     ;;
+esac
+

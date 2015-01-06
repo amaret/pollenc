@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# This script adds the command line to run buildStats on curr output to the file command file.
+if [[ $# -lt 6 ]]; then
+    echo Required args: Arg1: toolchain, Arg2: test file, Arg3: max load as integer, 
+    echo "   Arg4: command file, Arg5: results dir, Arg6: iterations"
+    exit 1
+fi
+
+export TMP=`mktemp -t testClcLoop$$_XXXX`
+echo output listing is in $TMP
+
+# create the command to generate stats for current results 
+if [[ $# -eq 7 ]]; then
+    #Arg7 has a test descriptor string
+    echo "echo $7  >> $5/$3_load.`date +%m_%d_%y.%S`" >> $4
+fi
+echo "buildStats $TMP >> $5/$3_load.`date +%m_%d_%y.%S`" >> $4
+i=0
+
+# random for random number of jobs
+#j=$RANDOM
+#if [ $j -gt 10000 ] ; then
+#   j=$(( $j / 5 ))
+#fi
+
+j=$6
+wait_sec=1
+if [ $3 -gt 100 ] ; then
+  wait_sec=5
+fi
+echo    testClcLoop: starts with load=$3, iterate=$j > $TMP
+echo =============================================
+echo    testClcLoop will iterate $j times
+echo =============================================
+while [ $i -lt $j ]
+    do
+        /usr/bin/time -f "Client elapsed real time in seconds: %e" --output=$TMP --append testClcOne $1 $2 2>&1 | cat >> $TMP &
+        i=$[$i+1]
+        load=`ps -ef | grep "test" | wc -l`
+        if [ $load -gt $3 ]  # test this load
+        then
+            echo    testClcLoop sleeps $wait_sec sec due to $load load 
+            echo    testClcLoop sleeps $wait_sec sec due to $load load >> $TMP
+            ps -ef | grep "test" >> $TMP
+            sleep $wait_sec
+        fi
+done
+
+wait

@@ -1,0 +1,5 @@
+Nov 2014.
+Scripts are under bin and so are results.
+
+This is performance tests for cloud compiler run on a digital ocean machine.
+The pollenc is included and the test used.

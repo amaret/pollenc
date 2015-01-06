@@ -1,0 +1,59 @@
+#!/bin/bash
+# Arg1: INFO string
+#
+# Pass these args to testClcLoop
+# Arg1: toolchain, 
+# Arg2: main unit, 
+# Arg3: load,
+# Arg4: path to cmmd file to create for stats generation,
+# Arg5: path to results dir
+# Arg6: number of iterations
+# Arg7: test info, e.g. number of workers. Optional.
+
+if [[ $# -eq 1 ]]; then
+    export INFO=$1
+    echo Test with configuration "${INFO}"
+else
+    echo "You must supply a string describing test configuration" 
+    exit 1
+fi
+
+export ROOT="`dirname \"$0\"`"
+export ROOT="`( cd \"$MY_PATH\" && pwd )`"
+export RSLT=$ROOT/RSLTS
+export ITER=100
+export TIMF=$RSLT/times
+export TMP=/tmp/times
+export ITER=100
+export CMD=$ROOT/runBuildStats           # cmmd to be created
+rm -f $CMD; rm -f $TIMF; rm -f $TMP
+echo "#!/bin/bash\n" > $CMD
+
+# Vary the load, or not.
+# Sleep or the jobs won't be done when the report is generated.
+
+/usr/bin/time -f "Job elapsed real time in seconds: %e" --output=$TMP testClcLoop \
+  efm32 ~/test102/Blink.p 5 $CMD $RSLT $ITER "${INFO}"
+echo "${INFO}" >> $TIMF; cat $TMP >> $TIMF
+#sleep 10
+
+/usr/bin/time -f "Job elapsed real time in seconds: %e" --output=$TMP testClcLoop \
+  efm32 ~/test102/Blink.p 10 $CMD $RSLT $ITER "${INFO}"
+echo "${INFO}" >> $TIMF; cat $TMP >> $TIMF
+#sleep 100
+
+/usr/bin/time -f "Job elapsed real time in seconds: %e" --output=$TMP testClcLoop \
+  efm32 ~/test102/Blink.p 25 $CMD $RSLT $ITER "${INFO}"
+echo "${INFO}" >> $TIMF; cat $TMP >> $TIMF
+#sleep 200 
+
+/usr/bin/time -f "Job elapsed real time in seconds: %e" --output=$TMP testClcLoop \
+  efm32 ~/test102/Blink.p 50 $CMD $RSLT $ITER "${INFO}"
+echo "${INFO}" >> $TIMF; cat $TMP >> $TIMF
+#sleep 300 
+
+/usr/bin/time -f "Job elapsed real time in seconds: %e" --output=$TMP testClcLoop \
+  efm32 ~/test102/Blink.p 100 $CMD $RSLT $ITER "${INFO}"
+echo "${INFO}" >> $TIMF; cat $TMP >> $TIMF
+#sleep 400 
+genReport $RSLT $TIMF

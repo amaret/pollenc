@@ -1,0 +1,44 @@
+Report on cloud compiler performance 11.21.14
+
+===  1_load.11_21_14.26  ===
+Test with 1 worker, using drip for java
+testClcLoop: starts with load=1, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.6 sec compiles:  99.00 per cent
+WORKER 0.7 sec compiles:  1.00 per cent
+CLIENT average elapsed sec:    1.11 
+
+===  10_load.11_21_14.20  ===
+Test with 1 worker, using drip for java
+testClcLoop: starts with load=10, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.6 sec compiles:  99.00 per cent
+WORKER 0.7 sec compiles:  1.00 per cent
+CLIENT average elapsed sec:    1.46 
+
+===  25_load.11_21_14.39  ===
+Test with 1 worker, using drip for java
+testClcLoop: starts with load=25, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.6 sec compiles:  100.00 per cent
+CLIENT average elapsed sec:    4.50 
+
+===  50_load.11_21_14.20  ===
+Test with 1 worker, using drip for java
+testClcLoop: starts with load=50, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.6 sec compiles:  100.00 per cent
+CLIENT average elapsed sec:    9.05 
+
+===  100_load.11_21_14.56  ===
+Test with 1 worker, using drip for java
+testClcLoop: starts with load=100, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    85
+WORKER 0.6 sec compiles:  98.82 per cent
+WORKER 0.7 sec compiles:  1.18 per cent
+CLIENT average elapsed sec:    16.81 

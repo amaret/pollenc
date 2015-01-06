@@ -1,0 +1,62 @@
+Report on cloud compiler performance 11.25.14
+
+===  5_load.11_25_14.08  ===
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+testClcLoop: starts with load=5, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.9 sec compiles:  22.00 per cent
+WORKER 1 sec compiles:    78.00 per cent
+CLIENT average elapsed sec:    1.81 
+
+===  10_load.11_25_14.52  ===
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+testClcLoop: starts with load=10, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 2 sec compiles:    9.00 per cent
+WORKER 3 sec compiles:    91.00 per cent
+CLIENT average elapsed sec:    4.25 
+
+===  25_load.11_25_14.38  ===
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+testClcLoop: starts with load=25, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    1.00 per cent
+WORKER 3 sec compiles:    98.00 per cent
+CLIENT average elapsed sec:    8.85 
+
+===  50_load.11_25_14.24  ===
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+testClcLoop: starts with load=50, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    1.00 per cent
+WORKER 3 sec compiles:    98.00 per cent
+CLIENT average elapsed sec:    16.01 
+
+===  100_load.11_25_14.10  ===
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+testClcLoop: starts with load=100, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+SERVER delays:             70 
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    2.00 per cent
+WORKER 3 sec compiles:    97.00 per cent
+CLIENT average elapsed sec:    29.08 
+
+===  Times for each (whole) parameterized test run.  ===
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+Job elapsed real time in seconds: 104.58
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+Job elapsed real time in seconds: 106.11
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+Job elapsed real time in seconds: 105.78
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+Job elapsed real time in seconds: 105.59
+Test with 3 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
+Job elapsed real time in seconds: 105.48

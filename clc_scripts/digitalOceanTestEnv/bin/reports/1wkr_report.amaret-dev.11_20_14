@@ -1,0 +1,47 @@
+Report on cloud compiler performance 11.20.14
+
+===  5_load.11_20_14.54  ===
+Test with 1 worker
+testClcLoop: starts with load=5, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.9 sec compiles:  38.00 per cent
+WORKER 1 sec compiles:    62.00 per cent
+CLIENT average elapsed sec:    1.81 
+
+===  10_load.11_20_14.48  ===
+Test with 1 worker
+testClcLoop: starts with load=10, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.9 sec compiles:  38.00 per cent
+WORKER 1 sec compiles:    62.00 per cent
+CLIENT average elapsed sec:    2.97 
+
+===  25_load.11_20_14.39  ===
+Test with 1 worker
+testClcLoop: starts with load=25, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.9 sec compiles:  42.00 per cent
+WORKER 1 sec compiles:    58.00 per cent
+CLIENT average elapsed sec:    7.59 
+
+===  50_load.11_20_14.55  ===
+Test with 1 worker
+testClcLoop: starts with load=50, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.9 sec compiles:  30.00 per cent
+WORKER 1 sec compiles:    70.00 per cent
+CLIENT average elapsed sec:    15.54 
+
+===  100_load.11_20_14.03  ===
+Test with 1 worker
+testClcLoop: starts with load=100, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+SERVER delays:             68 
+WORKER 0.9 sec compiles:  59.00 per cent
+WORKER 1 sec compiles:    41.00 per cent
+CLIENT average elapsed sec:    27.95 

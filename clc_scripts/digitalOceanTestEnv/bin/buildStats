@@ -1,0 +1,88 @@
+#/bin/bash
+if [[ $# -ne 1 ]]; then
+    echo Arg1: the tmp file holding the job listing
+    exit 1
+fi
+grep "load=" $1
+grep "TEST" $1 | wc -l > lines
+echo "TOTAL builds launched:    " `cat lines`
+
+grep "Build took" $1 > /tmp/builds
+
+wc -l < /tmp/builds > lines
+totBuilds=`cat lines`
+
+grep "pollenc error!" $1 | wc -l > lines
+totBuilds=$(( $totBuilds + `cat lines` ))
+echo "TOTAL builds completed:   " $totBuilds
+
+grep "pollenc error!" $1 | wc -l > lines
+numBuilds=`cat lines`
+if [ $numBuilds -ne 0 ]; then
+     avg=$(echo "($numBuilds / $totBuilds) * 100" | bc -l)
+     printf "FAILED builds:    %.2f per cent\n" $avg      
+fi
+
+grep "server delay" $1 | wc -l > lines
+numBuilds=0
+if [[ -s lines ]]; then
+      numBuilds=`cat lines`
+fi
+if [ $numBuilds -ne 0 ]; then
+     printf "SERVER delays:             $numBuilds \n" 
+fi
+
+x=1
+while [ $x -le 10 ]
+do
+  grep "took 0\.$x" /tmp/builds | wc -l > lines
+  numBuilds=0
+  if [[ -s lines ]]; then
+      numBuilds=`cat lines`
+  fi
+  if [ $numBuilds -ne 0 ]; then
+     avg=$(echo "($numBuilds / $totBuilds) * 100" | bc -l)
+     printf "WORKER 0.$x sec compiles:  %.2f per cent\n" $avg      
+  fi
+  x=$(( $x + 1 ))
+done
+
+
+x=1
+# 600 sec is a maximum - too low?
+while [ $x -le 600 ]
+do
+  grep "took $x" /tmp/builds | wc -l > lines
+  numBuilds=0
+  if [[ -s lines ]]; then
+      numBuilds=`cat lines`
+  fi
+  #echo $numBuilds
+  #cat lines
+  if [ $numBuilds -ne 0 ]; then
+     avg=$(echo "($numBuilds / $totBuilds) * 100" | bc -l)
+     printf "WORKER $x sec compiles:    %.2f per cent\n" $avg      
+  fi
+  x=$(( $x + 1 ))
+done
+
+
+#get average of elapsed time on client
+grep "^Client elapsed real.*$" $1 > /tmp/clientTime
+totalTime=0
+while read -r line
+do
+    t=`echo $line | grep "^Client elapsed real.*$" | sed "s/^Client elapsed real time in seconds: \(.*\)$/\1/"`
+    totalTime=`echo $totalTime + $t | bc`
+done < /tmp/clientTime
+
+grep "^Client elapsed" $1 | wc -l > lines
+count=`cat lines`
+intTime=${totalTime%.*}
+if [ $intTime -ne 0 -a $count -ne 0 ]; then
+   avg=$(echo "($totalTime / $count)" | bc -l)
+   printf "CLIENT average elapsed sec:    %.2f \n" $avg      
+fi
+
+
+rm lines

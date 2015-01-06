@@ -1,0 +1,58 @@
+Report on cloud compiler performance 11.22.14
+
+===  5_load.11_22_14.44  ===
+testClcLoop: starts with load=5, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 0.9 sec compiles:  49.00 per cent
+WORKER 1 sec compiles:    51.00 per cent
+CLIENT average elapsed sec:    1.81 
+
+===  10_load.11_22_14.38  ===
+testClcLoop: starts with load=10, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    3.00 per cent
+WORKER 3 sec compiles:    96.00 per cent
+CLIENT average elapsed sec:    4.83 
+
+===  25_load.11_22_14.00  ===
+testClcLoop: starts with load=25, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    1.00 per cent
+WORKER 3 sec compiles:    98.00 per cent
+CLIENT average elapsed sec:    9.22 
+
+===  50_load.11_22_14.58  ===
+testClcLoop: starts with load=50, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    3.00 per cent
+WORKER 3 sec compiles:    96.00 per cent
+CLIENT average elapsed sec:    15.97 
+
+===  100_load.11_22_14.28  ===
+testClcLoop: starts with load=100, iterate=100
+TOTAL builds launched:     100
+TOTAL builds completed:    100
+SERVER delays:             70 
+WORKER 1 sec compiles:    1.00 per cent
+WORKER 2 sec compiles:    1.00 per cent
+WORKER 3 sec compiles:    98.00 per cent
+CLIENT average elapsed sec:    29.32 
+
+===  Times for each (whole) parameterized test run.  ===
+Test with 3 workers
+Job elapsed real time in seconds: 103.87
+Test with 3 workers
+Job elapsed real time in seconds: 102.22
+Test with 3 workers
+Job elapsed real time in seconds: 98.04
+Test with 3 workers
+Job elapsed real time in seconds: 89.24
+Test with 3 workers
+Job elapsed real time in seconds: 72.52
