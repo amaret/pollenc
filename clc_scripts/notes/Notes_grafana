@@ -1,0 +1,31 @@
+
+config.js:
+  host in config.js had to be control.amaret.com not localhost.
+
+timezone:
+  I could not bring it up I got the message that the timezones could be off. 
+  The issue is that my mac and control.amaret.com are in different tz which 
+  confuses time based queries.
+  There are various posts on this. 
+  https://groups.google.com/forum/#!topic/influxdb/4nRnTUgab6c
+  There is a timezone config parameter for
+  config.js but its only documented usage is for graphite:
+  http://kaivanov.blogspot.com/2014/07/metrics-visualisation-and-collection.html
+  https://github.com/grafana/grafana/issues/31
+  I had to do two things:
+    set grafana in the browser to use UTZ (greenwich mean time).
+    set my mac to UTZ. 
+  Now it works.
+    
+Series names: 
+  The series names are created in riemann.config.
+  It is <host>.<service>:
+      ; influxdb series
+        (fn [event]
+            (let [series (format "%s.%s" (:host event) (:service event))]
+                (influx series {
+                    :time  (:time event)
+                    :value (:metric event)
+                })
+            )
+        )

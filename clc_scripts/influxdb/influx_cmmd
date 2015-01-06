@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#curl -X POST 'http://localhost:8086/cluster_admins?u=root&p=rusty_is_a_cowboy' \
+#  -d '{"name": "megan", "password": "rusty_is_a_cowboy"}'
+
+#curl -X POST 'http://localhost:8086/cluster_admins/megan?u=root&p=rusty_is_a_cowboy' \
+#  -d '{"password": "rusty_is_a_cowboy"}'
+
+# set config.json
+#curl -X POST \
+#  "http://localhost:8086/cluster/database_configs/clc_db?u=root&p=rusty_is_a_cowboy" \
+#	  --data-binary @clc_config.json
+
+# set continous query
+#curl -v -G \
+#'http://localhost:8086/db/clc_db/series?u=root&p=rusty_is_a_cowboy&pretty=true' \
+# --data-urlencode "q=select count(value) from \"10.0.0.11.pollenc_efm32-gcc total txn_dur\" \
+# group by time(5m) into 5m.count.events"
+#
+# set continous query
+curl -v -G \
+'http://localhost:8086/db/clc_db/series?u=root&p=rusty_is_a_cowboy&pretty=true' \
+ --data-urlencode "q=select value from \"10.0.0.11.pollenc_efm32-gcc total txn_dur\" \
+ group by time(5m) into 5m.value.events"
+
+
+

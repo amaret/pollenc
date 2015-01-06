@@ -1,0 +1,40 @@
+#!/bin/bash
+
+echo Transfer Cloud Compiler files to localhost.
+echo Transfer fully qualified path to file z on remote to z in current dir.
+echo Arg1: Pass the DNS of remote machine. Required.
+echo Arg2: File argument. Required.
+
+#export DEST= `echo $TEST | awk -F/ '{print $NF}'`
+
+if [[ $# -eq 2 ]]; then
+    export AWS=$1
+    echo set AWS to $AWS
+else
+    echo Required args are 1: remote machine dns, 2: file argument.
+    exit 1
+fi
+
+read -p "Select credential: 1 for vpc-front, 2 for vpc-back, 3 for wind-be. " sel
+case $sel in
+  [1]* ) export CRED=~/.ssh/vpc-front.pem
+        ;;
+  [2]* ) export CRED=~/.ssh/vpc-back.pem 
+        ;;
+  [3]* ) export CRED=~/.ssh/wind-be.pem 
+        ;;
+  * ) echo "Invalid selection." 
+      exit 1
+        ;;
+esac
+
+
+export DEST=`basename $2`
+echo
+read -p "Transferring $2 on $1 to $DEST on localhost. Okay? " yn
+case $yn in
+      [Yy]* ) 
+          scp -p -i ${CRED} ops@${AWS}:$2 $DEST
+          ;;
+      * ) echo "transfer skipped"
+esac

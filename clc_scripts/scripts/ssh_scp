@@ -1,0 +1,23 @@
+#!/bin/bash
+# -r for recursive copy. Not using.
+# -p to preserve modification time
+
+echo Using AMI $AWS
+
+#set -x -v
+
+PARM=$1
+if [ ! -z $2 ]
+then
+    PARM2=$2    # there is a 2nd arg
+else
+    PARM2=${PARM}
+fi
+
+if [ -f "${PARM}" ]; then
+            scp -p -i ~/.ssh/amaret-be.pem \
+                ${PARM} pops@${AWS}:${PARM2}
+else
+        echo "${PARM} is not valid";
+        exit 1
+fi

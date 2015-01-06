@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [[ $# -eq 1 ]]; then
+    export AWS=$1
+fi
+
+
+read -p "Enter 1 for vpc-front, 2 for vpc-back, 3 for wind-be credential: " sel
+case $sel in
+  [1]* ) export CRED=~/.ssh/vpc-front.pem
+        ;;
+  [2]* ) export CRED=~/.ssh/vpc-back.pem 
+        ;;
+  [3]* ) export CRED=~/.ssh/wind-be.pem 
+        ;;
+  * ) echo "Invalid selection." 
+      exit 1
+        ;;
+esac
+
+echo ..logging in to ${AWS}...
+
+ssh  -i ${CRED} ops@${AWS}
+

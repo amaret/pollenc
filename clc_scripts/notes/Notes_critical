@@ -1,0 +1,24 @@
+Getting critial alerts on cpu:
+  When update-apt-xapi is running, CPU usage stays at 100%
+  See 
+  http://askubuntu.com/questions/79481/is-100-cpu-usage-harmful-while-update-apt-xapi-runs
+  http://sapnwnewbie.blogspot.co.uk/2010/11/high-cpu-usage-by-update-apt-xapi.html
+
+  I put a fix in both the daily and weekly cron job:
+  
+  /etc/cron.daily/apt:
+  line 462: nice -n 19 ionice -c3 update-apt-xapian-index --update -q -u
+                 ^^^NEW                                 ^^^NEW
+
+  /etc/cron.weekly/apt-xapian-index:
+  # Rebuild the index
+  if [ -x "$CMD" ]
+  then
+          if [ -x "$IONICE" ]
+          then
+                  nice -n 19 $IONICE -c 3 $CMD --update --quiet
+          else                                  ^^^NEW
+                  nice -n 19 $CMD --quiet
+          fi
+  fi
+  

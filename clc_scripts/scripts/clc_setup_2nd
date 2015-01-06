@@ -1,0 +1,114 @@
+#!/bin/bash
+export PC='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/bitbucket/pollenc'
+export WC='/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/bitbucket/wind.compile'
+export RM=$PC/riemann 
+
+echo Run this on the LOCAL development system.
+echo
+echo Transfer upstart files and commands to AWS image. 
+echo Run after apt-gets etc via ssh_setup_1 are complete.
+echo arg 1: the cloud compiler target. Required.
+echo arg 2: dns for the target image. Optional.
+echo 
+if [[ -z "$1" ]]; then
+    echo >&2 "You must supply an argument!"
+    echo "Valid options are -avr, -localhost, -arm, -server, -riemann"
+    exit 0
+fi
+
+if [[ $# -eq 2 ]]; then
+    export AWS=$2
+    echo set AWS to $AWS
+fi
+
+case $1 in 
+-avr)
+     cd ~/
+     echo transfering... PollenWorker avr-gcc commands
+     ssh_scp bin/version-check.sh
+     ssh_scp bin/pspy
+     ssh_scp bin/pollenc_worker_avr
+     ssh_scp bin/cp_conf_avr
+     ssh_scp .inputrc
+     ssh_scp .bash_profile_aws .bash_profile
+     echo transfering... PollenWorker avr-gcc upstart
+     cd ${WC}/upstart
+     pwd
+     export CONF=ClcPollenAvrGccWorker
+     ssh_scp ${CONF} ${CONF}
+     ssh_scp riemann-health.conf riemann-health.conf
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "./bin/cp_conf_avr "
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "rm ./bin/cp_conf_avr "
+     ;;
+-localhost)
+     cd ~
+     echo transfering... PollenWorker localhost commands
+     ssh_scp bin/version-check.sh
+     ssh_scp bin/pspy
+     ssh_scp bin/pollenc_worker_localhost
+     ssh_scp bin/cp_conf_localhost
+     ssh_scp .inputrc
+     ssh_scp .bash_profile_aws .bash_profile
+     echo transfering... PollenWorker localhost-gcc upstart
+     cd ${WC}/upstart
+     pwd
+     export CONF=ClcPollenGccWorker
+     ssh_scp ${CONF} ${CONF}
+     ssh_scp riemann-health.conf riemann-health.conf
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "./bin/cp_conf_localhost "
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "rm ./bin/cp_conf_localhost "
+     ;;
+-arm)
+     cd ~
+     echo transfering... PollenWorker arm commands
+     ssh_scp bin/version-check.sh
+     ssh_scp bin/pspy
+     ssh_scp bin/pollenc_worker_arm
+     ssh_scp bin/cp_conf_arm
+     ssh_scp .inputrc
+     ssh_scp .bash_profile_aws .bash_profile
+     echo transfering... PollenWorker arm-gcc upstart
+     cd ${WC}/upstart
+     pwd
+     export CONF=ClcPollenArmGccWorker
+     ssh_scp ${CONF} ${CONF}
+     ssh_scp riemann-health.conf riemann-health.conf
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "./bin/cp_conf_arm "
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "rm ./bin/cp_conf_arm "
+     ;;
+ -server)
+     cd ~
+     echo transfering... PollencServer commands
+     ssh_scp bin/pspy
+     ssh_scp bin/pollenc_server
+     ssh_scp bin/cp_conf_svr
+     ssh_scp .inputrc
+     echo transfering... PollenServer upstart
+     cd ${PC}/upstart
+     pwd
+     export CONF='ClcPollenServer'
+     ssh_scp $CONF $CONF
+     ssh_scp riemann-health.conf riemann-health.conf
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "./bin/cp_conf_svr "
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} bash -c "rm ./bin/cp_conf_svr "
+     ;;
+ -riemann)
+     cd ~
+     echo transfering... Riemann commands and upstart scripts
+     ssh_scp .inputrc
+     cd ${RM}
+     pwd
+     export CONF='riemann.conf'
+     ssh_scp $CONF $CONF
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} "sudo mv riemann.conf /etc/init/riemann.conf"
+     export CONF='graphite.conf'
+     ssh_scp $CONF $CONF
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} "sudo mv graphite.conf /etc/init/graphite.conf"
+     export CONF='riemann-health.conf'
+     ssh_scp $CONF $CONF
+     ssh -i ~/.ssh/amaret-be.pem pops@${AWS} "sudo mv riemann-health.conf /etc/init/riemann-health.conf"
+     echo "Did not transfer riemann.config. If this is a fresh install must scp riemann.config."
+     ;;
+esac
+
+

@@ -1,0 +1,188 @@
+Influxdb
+
+start/stop daemon: /etc/init.d/influxdb
+  to use:  /etc/init.d/influxdb stop
+           /etc/init.d/influxdb start
+
+log file is configurable in ls /opt/influxdb/current/config.toml
+  default is /opt/influxdb/shared/log.txt
+  NOTE this file took up 40% of disc space after like a month.
+  It's not configured with zip or delete. 
+  I changed the log option from debug to warn. 
+  3177M	opt           <=  influxdb
+  2761M	opt           <=  after delete clc_db
+  75M	opt           <=  after delete log.txt files
+
+database dir :
+  default is /opt/influxdb/shared/data (subdirs)
+
+database config:
+  for influxdb as a whole:
+    /opt/influxdb/shared/config.toml
+  for specific clc_db in influxdb:
+    /home/ops/riemann/influxdb/clc_config.json
+
+The series names are created in riemann.config.
+It is <host>.<service>:
+      ; influxdb series
+        (fn [event]
+            (let [series (format "%s.%s" (:host event) (:service event))]
+                (influx series {
+                    :time  (:time event)
+                    :value (:metric event)
+                })
+            )
+        )
+
+curl interface: use pretty=true
+  To get a configuation dump (from amaret control svr):
+    curl -v 'http://localhost:8086/cluster/configuration?u=root&p=rusty_is_a_cowboy&pretty=true' 
+
+  Current shard / db config via curl:
+    curl 'http://localhost:8086/cluster/shard_spaces?u=root&p=rusty_is_a_cowboy'
+
+  GET Query via curl:
+    curl -G 'http://localhost:8086/db/mydb/series?u=root&p=rusty_is_a_cowboy' --data-urlencode \
+    "q=select * from log_lines limit 1"
+
+  GET Query with pretty print:
+    curl -v -G 'http://localhost:8086/db/xyxy/series?u=root&p=rusty_is_a_cowboy&pretty=true' \
+    --data-urlencode "q=select * from ip-10-0-0-11.cpu"
+
+  GET Query with date (surround date with single quotes):
+    curl -v -G 'http://localhost:8086/db/xyxy/series?u=root&p=rusty_is_a_cowboy&pretty=true'
+    --data-urlencode "q=select value from ip-10-0-0-11.cpu where time < '`date
+    +%Y-%m-%d`'"
+
+  GET Query for mean fcn and special characters in select clause: 
+    curl -v -G 'http://localhost:8086/db/xyxy/series?u=root&p=rusty_is_a_cowboy&pretty=true'
+    --data-urlencode "q=select mean(value) from \"ip-10-0-0-11.disk /\" where
+    time > '`date +%Y-%m-%d`' and time < now() limit 1"
+
+  GET Query as above and pipe thru sed to get exact line of result value:
+    curl -s -G 'http://localhost:8086/db/xyxy/series?u=root&p=rusty_is_a_cowboy&pretty=true'
+    --data-urlencode "q=select mean(value) from \"ip-10-0-0-11.disk /\" where
+    time > '`date +%Y-%m-%d`' and time < now() limit 1" | sed -n '11p'
+
+  POST via curl:
+    curl -X POST -d '[{"name":"foo","columns":["val"],"points":[[23]]}]'
+    'http://localhost:8086/db/mydb/series?u=root&p=rusty_is_a_cowboy'
+
+  POST create a database with local config file:
+  curl -X POST \
+  "http://localhost:8086/cluster/database_configs/clc_db?u=root&p=rusty_is_a_cowboy" \
+  --data-binary @clc_config.json
+
+config for clc_db in influxdb:
+  /home/ops/riemann/influxdb/clc_config.json
+Sample:
+{
+  "spaces": [
+    {
+      // NOTE I changed 30 to 15 and 7 to 3
+      "name": "everything_30d",   // spaces ordered general to specific
+      "retentionPolicy": "30d",   // based on regex
+      "shardDuration": "7d",
+      "regex": "/.*/",		  // regex matches on series name
+      "replicationFactor": 1,
+      "split": 1
+    },
+    {
+      "name": "forever",
+      "retentionPolicy": "inf",
+      "shardDuration": "7d",
+      "regex": "/^_.*/", 	 // matches a leading underscore
+      "replicationFactor": 1,
+      "split": 1
+    },
+    {
+      "name": "rollups",
+      "retentionPolicy": "365d",
+      "shardDuration": "30d",
+      "regex": "/^\\d+.*/",      // matches a leading digit?
+      "replicationFactor": 1,
+      "split": 1
+    }
+  ],
+  "continuousQueries": [
+    "select * from events into events.[id]",
+    "select count(value) from events group by time(5m) into 5m.count.events"
+  ]
+}
+
+Matching: I think what happens is that the first space gets everything that 
+comes from outside. (See regex.) Then continuous queries downsample from that 
+space into other spaces, based on regex. So the downsample is kept after 
+data is deleted from the default space. 
+
+"replicationFactor" and "split"
+The replicationFactor setting tells the InfluxDB cluster how many servers should
+have a copy of each shard in the given shard space. Split tells the
+cluster how many shards to create for a given interval of time. Data for that
+interval will be distributed across the shards. This setting is how you achieve
+write scalability. You may want to have replicationFactor * split == number of
+servers. 
+
+The retentionPolicy is the period of time that data will be kept around. The
+exact semantics are that data is kept at least that long. The amount of time it
+is kept after that is determined by the shardDuration.
+
+dump & restore:
+  influxdb-dump -database db1
+  influxdb-restore -database db1
+
+Command line console for influxdb:
+  influxDB-cli
+  http://www.rubydoc.info/gems/influxdb-cli/0.1.3/frames
+  Can test queries.
+
+ 
+Issues:
+
+1.  from influxdb-dump:
+    "Server returned (400): Couldn't look up columns"
+    Worked after I cut back riemann.config and reloaded. 
+
+2.  I am able to forward data to influxdb and graph it in the browser but I'm getting these error messages
+    in the log:
+    [2014/10/27 22:52:04 UTC] [DEBG] (github.com/influxdb/influxdb/api/http.
+       (*HttpServer).tryAsDbUserAndClusterAdmin:759) Trying to auth as a db user
+    [2014/10/27 22:52:04 UTC] [DEBG] (github.com/influxdb/influxdb/coordinator.
+       (*CoordinatorImpl).AuthenticateDbUser:840) (raft:6a2f0eea4620f793) 
+       Authenticating password for xyxy:root
+    [2014/10/27 22:52:04 UTC] [DEBG] (github.com/influxdb/influxdb/api/http.
+       (*HttpServer).tryAsDbUserAndClusterAdmin:762) 
+       Authenticating as a db user failed with Invalid username/password (401)
+     No problems with root:root in the browser for this db.
+
+3.  Memory. 80-90% memory up to critical. influxdb was taking 62%. 11-27-14/
+    I reduced max-open-files. Restarted. Track this. 
+
+4. https://groups.google.com/forum/#!topic/influxdb/-EfvWc4oe_w
+   my config.json file was re-ordered. Track this. 
+
+5.  Would not restart, config.toml error. Workaround. 
+    I had to change the default config.toml file because we were using too much
+    memory. So I dropped the number of max open files. But when I did this I made a
+    typo.
+    
+    When I tried to restart influxdb it failed silently. Nothing in any log: syslog,
+    boot.log, the influxdb log file. Init reported that it had started but it wasn't
+    running. When I looked into the init script /etc/init.d/influxdb this is the
+    line that was starting influxdb:
+    
+    nohup start-stop-daemon --chuid influxdb:influxdb -d / --start --quiet --oknodo
+    --pidfile $pidfile --exec $daemon -- -pidfile $pidfile -config $config >
+    /dev/null 2>&1 &
+    
+    I redirected the output going to /dev/null to a file and discovered my syntax
+    error with nice message and line number. Now I have fixed the
+    /etc/init.d/influxdb script.
+    Issue https://github.com/influxdb/influxdb/issues/1183
+    
+6.  With 'info' level the log file was still huge (because the continuous
+    queries are actually working). So Ami added a 20 GB volumne at /mnt
+    and the log files are now there, still at info level.
+    I did not move the db file locations. What happens to the existing db
+    when you do that? It's not big enough yet to need it. 12/1/14.
+
