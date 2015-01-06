@@ -1,6 +1,0 @@
-#!/bin/bash
-
-export POLLEN_TARGET=/home/pops/include
-export POLLEN_BUNDLES=/home/pops/bundles
-
-python /home/pops/wind.compile/PollenWorker.py -p /home/pops/bin/pollen.jar -t avr-gcc &

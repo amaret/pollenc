@@ -1,4 +1,0 @@
-#!/bin/bash
-
-python /home/pops/pollenc/PollencServer.py  &
-
