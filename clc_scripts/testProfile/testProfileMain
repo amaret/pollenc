@@ -1,0 +1,38 @@
+#!/bin/bash
+echo Run the new pollen and the old pollen and create csv files for timing data.
+echo The averages for new and old are printed to stdout.
+echo The directory 'runs' contains results data under dated sub directories.
+echo Note the new pollen and its grammar will be copied to the results directory.
+echo
+echo Copy the new pollen into local directory!!!
+export POLLEN=./pollen.orig_notrace.jar
+export RUNID=`date "+_%m.%d.%y_%H%M%S"`
+mkdir runs/run${RUNID}
+export DIR=runs/run${RUNID}
+export GRAM=/Users/lentil/workspace0/com.amaret.pollen/bin/com/amaret/pollen/parser/pollen.g
+
+i=0
+j=10
+while [ $i -lt $j ]
+    do
+        testProfile ${POLLEN}  >> ${DIR}/ORIG${RUNID}  2>&1
+        i=$[$i + 1]
+done
+makeCsv ${DIR}/ORIG${RUNID}
+
+export POLLEN=./pollen.jar
+i=0
+j=10
+while [ $i -lt $j ]
+    do
+        testProfile ${POLLEN} >> ${DIR}/NEW${RUNID}  2>&1
+        i=$[$i + 1]
+done
+makeCsv ${DIR}/NEW${RUNID}
+
+cp ${POLLEN} ${DIR}/.
+cp ${GRAM} ${DIR}/.
+cat ${DIR}/*.results > ${DIR}/results
+rm ${DIR}/results.* 
+cat ${DIR}/results
+

@@ -1,0 +1,56 @@
+#!/bin/bash
+# arg 1 : which pollen to use
+
+# Translate the test. Use 'time'.
+
+export t=/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/test
+
+export POLLEN=${1}
+
+export POLLEN_ROOT=
+export num=test88
+export n=97
+export POLLEN_TARGET=${t}/pollen.target
+export POLLEN_BUNDLES=/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/pollen-workspace/ami/bundles
+echo "============================= ${num} ============================="
+echo "==" $POLLEN "=="
+export tst=${t}/${num}/Test_21.p
+grep -h -r TEST ${t}/${num}/*
+export dir1=$POLLEN_BUNDLES/pollen-core
+export dir2=$POLLEN_BUNDLES/atmel
+export dir3=$POLLEN_BUNDLES/environments
+time -p java -jar ${POLLEN} ${tst} \
+  -e @environments/arduino/Uno \
+  -t arm-none-eabi-gcc -mcu arm7tdmi \
+        -p ${t}/test54/PrintImpl \
+        ${dir1} ${dir2} ${dir3} > ${t}/xout 2>&1
+
+
+export POLLEN_ROOT=
+export num=test88
+export n=97
+export POLLEN_TARGET=${t}/pollen.target
+export POLLEN_BUNDLES=/Users/lentil/Documents/MegansStuff/Documents/MeganAdams-Pollen/MeganAdams-Pollen/pollen-workspace/ami/bundles
+echo "============================= ${num} ============================="
+echo "==" $POLLEN "=="
+export tst=${t}/${num}/Test_21.p
+export dir1=$POLLEN_BUNDLES/pollen-core
+export dir2=$POLLEN_BUNDLES/atmel
+export dir3=$POLLEN_BUNDLES/environments
+time -p java -jar ${POLLEN} ${tst} \
+  -e @environments/arduino/Uno \
+  -t arm-none-eabi-gcc -mcu arm7tdmi \
+        -p ${t}/test54/PrintImpl \
+        ${dir1} ${dir2} ${dir3} > ${t}/xout 2>&1
+
+export num=test5;export n=5
+echo "============================= ${num} ============================="
+echo "==" $POLLEN "=="
+export tst=${t}/${num}/BlinkMilli.p
+export dir1=${t}/${num}/base
+export dir2=${t}/${num}/amaret
+grep -h -r TEST ${t}/${num}/*.p
+time -p java -jar ${POLLEN} -gccAvr ${tst} \
+    -p ${t}/test54/PrintImpl \
+    ${dir1} ${dir2} ${POLLEN_ROOT} > ${t}/xout 2>&1
+

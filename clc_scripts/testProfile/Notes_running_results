@@ -1,0 +1,80 @@
+Original ('ORIG') in all cases is the grammar before global backtracking removed.
+
+First grammar.
+Global backtracking removed.
+runs/run_01.02.15_225913/NEW_01.02.15_225913 Average real time: 1.709
+runs/run_01.02.15_225913/NEW_01.02.15_225913 Average user time: 2.154
+runs/run_01.02.15_225913/ORIG_01.02.15_225913 Average real time: 2.062
+runs/run_01.02.15_225913/ORIG_01.02.15_225913 Average user time: 2.30233
+
+Tried it again:
+runs/run_01.06.15_013118/NEW_01.06.15_013118 Average real time: 1.85767
+runs/run_01.06.15_013118/NEW_01.06.15_013118 Average user time: 2.15867
+runs/run_01.06.15_013118/ORIG_01.06.15_013118 Average real time: 2.06133
+runs/run_01.06.15_013118/ORIG_01.06.15_013118 Average user time: 2.277
+
+Second grammar. 
+Tried to optimized the stmt rule which was taking a lot of time but
+it seemed to slow things down.
+runs/run_01.02.15_222414/NEW_01.02.15_222414 Average real time: 1.961
+runs/run_01.02.15_222414/NEW_01.02.15_222414 Average user time: 2.15733
+runs/run_01.02.15_222414/ORIG_01.02.15_222414 Average real time: 2.17033
+runs/run_01.02.15_222414/ORIG_01.02.15_222414 Average user time: 2.28733
+
+Third grammar. 
+More work on the stmt rule.
+runs/run_01.05.15_234640/NEW_01.05.15_234640 Average real time: 1.785
+runs/run_01.05.15_234640/NEW_01.05.15_234640 Average user time: 2.12867
+runs/run_01.05.15_234640/ORIG_01.05.15_234640 Average real time: 2.074
+runs/run_01.05.15_234640/ORIG_01.05.15_234640 Average user time: 2.28267
+
+Fourth grammar. 
+More work on the stmt rule.
+I think the one above had a 'no alternatives' problem.
+Worst yet!
+runs/run_01.06.15_010149/NEW_01.06.15_010149 Average real time: 1.97633
+runs/run_01.06.15_010149/NEW_01.06.15_010149 Average user time: 2.16533
+runs/run_01.06.15_010149/ORIG_01.06.15_010149 Average real time: 2.09
+runs/run_01.06.15_010149/ORIG_01.06.15_010149 Average user time: 2.32067
+
+Fifth grammar. 
+Took 'expr' rule out of a predicate. Actually helped.
+runs/run_01.06.15_023025/NEW_01.06.15_023025 Average real time: 1.48133
+runs/run_01.06.15_023025/NEW_01.06.15_023025 Average user time: 2.092
+runs/run_01.06.15_023025/ORIG_01.06.15_023025 Average real time: 1.70733
+runs/run_01.06.15_023025/ORIG_01.06.15_023025 Average user time: 2.25633
+
+2nd run of the same.
+runs/run_01.06.15_031744/NEW_01.06.15_031744 Average real time: 1.506
+runs/run_01.06.15_031744/NEW_01.06.15_031744 Average user time: 2.088
+runs/run_01.06.15_031744/ORIG_01.06.15_031744 Average real time: 1.665
+runs/run_01.06.15_031744/ORIG_01.06.15_031744 Average user time: 2.22767
+
+Sixth grammar.
+This one is same as above but I put the predicated rules in stmt at the
+end. The idea was to put the more frequently used rules (with predicates)
+at the beginning but that causes a large slowdown. 
+runs/run_01.06.15_034214/NEW_01.06.15_034214 Average real time: 2.42233
+runs/run_01.06.15_034214/NEW_01.06.15_034214 Average user time: 2.21067
+runs/run_01.06.15_034214/ORIG_01.06.15_034214 Average real time: 1.71467
+runs/run_01.06.15_034214/ORIG_01.06.15_034214 Average user time: 2.265
+
+Seventh grammar.
+This one has the same flat tree structure for post expressions as 
+the original but it works without global backtracking and it has k = 1.
+runs/run_01.07.15_234031/NEW_01.07.15_234031 Average real time: 1.55467
+runs/run_01.07.15_234031/NEW_01.07.15_234031 Average user time: 2.09767
+runs/run_01.07.15_234031/ORIG_01.07.15_234031 Average real time: 1.91733
+runs/run_01.07.15_234031/ORIG_01.07.15_234031 Average user time: 2.30133
+
+2nd run of the same.
+runs/run_01.08.15_011310/NEW_01.08.15_011310 Average real time: 1.421
+runs/run_01.08.15_011310/NEW_01.08.15_011310 Average user time: 2.07267
+runs/run_01.08.15_011310/ORIG_01.08.15_011310 Average real time: 1.617
+runs/run_01.08.15_011310/ORIG_01.08.15_011310 Average user time: 2.241
+
+Final run. Turned off Xrgree option which didn't seem to do anything.
+runs/run_01.08.15_195140/NEW_01.08.15_195140 Average real time: 1.487
+runs/run_01.08.15_195140/NEW_01.08.15_195140 Average user time: 2.064
+runs/run_01.08.15_195140/ORIG_01.08.15_195140 Average real time: 1.71033
+runs/run_01.08.15_195140/ORIG_01.08.15_195140 Average user time: 2.298

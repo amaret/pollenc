@@ -1,0 +1,81 @@
+Issues
+
+1. WS, NL
+   I had a lot of embedded (NL*) in rules the grammar. To squeeze that out of
+   rules and reduce ambiguities I tried to replace NL* with a single token.
+   The lexer can do this. But then it was spitting out WS (which was not 
+   being hidden, for some reason). 
+   I replaced this:
+     NL :   ('\r')? ('\n') // cannot be hidden because a statement delimiter ;
+   With this:
+     NLL :   ((NEWLINE) ((WS)? NEWLINE)*) WS?
+   ...where NEWLINE is a lexer fragment.
+
+2. Changes for NLL introduced problems with SL comments.
+   For
+     host uint8 host1 = 1 #variables
+     uint8 var = 2
+   With:
+     SL_COMMENT : '#' ~('\n'|'\r')*  NEWLINE ((WS)? NEWLINE)* WS?  { $channel=HIDDEN; }
+   This sucks up the NLL that terminates the first statement which results
+   in a parse error for that line.
+   It works for:
+     host uint8 host1 = 1 
+     #variables
+     uint8 var = 2
+   As each statement has an NLL. 
+
+   This: SL_COMMENT : '#' ~('\n'|'\r')*  { $channel=HIDDEN; }
+   breaks parser rule delim t work because of this. delim expects one NLL but
+   because SL_COMMENT is hidden it can get more. 
+
+   If I fix delim to take >1 NLL that get away from the whole purpose
+   of consolidating NL* into NLL.
+
+3. LT() vs LA().
+   Can use these functions to inspect input. But 0 is invalid value for latter
+   and for former it is the current input buffer character.
+
+4. Chunking NLs and comments.
+   This means that the NL for a stmt has to swallow any following comments.
+   Our current approach. NL* is now NL?
+
+5. There is ambiguity in the grammar as a result of newlines as delimters. 
+   foo() { bar() }        // '}' is delimiter
+   foo() { bar()          // '\n' is delimiter
+   }        
+   To fix this I removed leading NL from '}' rule. 
+   And in the lexer, when '{'...'}' is encountered on a single line (!)
+   I insert an '\n'. This means that newline and close brace have 
+   consistent AND different semantics.  See BRACE_CL rule in the lexer. 
+   This causes problems when I am constructing meta argument or array
+   initializer lists. These previously could have newline anywhere. 
+   I restricted that to after the comman in initializer list.
+   That wasn't enough in the meta argument list so I turned
+   backtracking for that rule. Not sure is this is sufficient. 
+
+6. Performance improvements.
+   Harder to find then I anticipated. 
+   for 'stmt' I moved the long predicated rules to the bottom and the 
+   starting rules should have been quick failures / matches. But this actually
+   reduced performance. I think that the problem is that antlr wasn't testing
+   bit vectors to match but actually executing a long 'if' statment to look
+   for specific stmt tokens. This if statment became more frequently executed
+   after the change.  Perhaps this could be improved by a semantic predicate
+   that does a quicker dispatch.
+   What DID work: one of the predicates for varDecl went through all of rule
+   expr. I was able to stop the predicate before expr and that made a 
+   significant improvement. 
+   Some antlr3 discussion points to the lexer for improvment, I didn't see
+   much in the profiles so I didn't look there but should check again.
+   NOTE there is a -profile option, I'm not sure what it does, but it does
+   not work (abort in antlrworks).
+
+
+
+   
+   
+
+
+
+   

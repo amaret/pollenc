@@ -1,0 +1,26 @@
+              averages
+
+final run
+new real time: 1.487
+old real time: 1.71033
+new user time: 2.064
+old user time: 2.298
+
+speed up    // for final run
+real 15%
+user 11%
+
+Iterations:
+new  user time 2.093    // 1st try, new parser
+new1 user time 2.151    // 2nd try, new parser stmt rearranged, loaded system
+new2 user time 2.14     // 2nd try, new parser stmt rearranged, unloaded system
+old  user time 2.258    // before parser changes
+
+new  real time 1.456    // same comments as for user time
+new1 real time 1.635
+new2 real time 1.63
+old  real time 1.616
+
+speed up    // for 1st try
+user  7%
+real  9%
