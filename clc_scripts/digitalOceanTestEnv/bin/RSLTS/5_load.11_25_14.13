@@ -1,8 +1,0 @@
-Test with 5 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM
-testClcLoop: starts with load=5, iterate=100
-TOTAL builds launched:     100
-TOTAL builds completed:    98
-WORKER 0.9 sec compiles:  16.33 per cent
-WORKER 1 sec compiles:    64.29 per cent
-WORKER 2 sec compiles:    19.39 per cent
-CLIENT average elapsed sec:    2.08 

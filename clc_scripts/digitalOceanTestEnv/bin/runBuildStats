@@ -1,3 +1,0 @@
-#!/bin/bash\n
-echo Test with 5 worker, no network transfer, run pollen.jar only, instance type t2.small, 2GB RAM  >> /home/ops/bin/RSLTS/5_load.11_25_14.13
-buildStats /tmp/testClcLoop21660_67nz >> /home/ops/bin/RSLTS/5_load.11_25_14.13
