@@ -282,22 +282,24 @@ class Pollenc:
     #
  
   # roll our own to avoid nonstandard ntplib dependency
+  # note this code is crap. Due to unreliable response from ntp server.
   def ntpTime(self):
       address = ("pool.ntp.org",123)
       data = '\x1b' + 47 * '\0'
       # connect to server
       client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+      client.settimeout(5)
       client.sendto(data, address)
       data, address = client.recvfrom( 1024 )
-      client.close()
       if data:
-          print "Success: could get ntp time"
+          #print "Success: could get ntp time"
           t = struct.unpack( '!12I', data )[10]
           t -= TIME1970
           dt = datetime.datetime.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y").isoformat()
       else:
-          print "Warning: could not get ntp time"
+          #print "Warning: could not get ntp time"
           dt = datetime.datetime.now().isoformat()
+      client.close()
       return dt
 
   def timeMsg(self, task, starttime):
@@ -432,6 +434,22 @@ class Pollenc:
                     zip.write(os.path.join(root, file))
         os.chdir(origpath)
 
+  def printTimes(self, rec, field):
+      if self.getVerbose() == 3:
+          timef = open(self.args.outdir + '/timing_data.csv', 'w+')
+          times = rec[field]
+          comma = ''
+          for time in sorted(times.keys()):
+              timef.write(comma)
+              timef.write('"' + time + '"')
+              comma = (', ')
+          timef.write('\n')
+          comma = ''
+          for time in sorted(times.keys()):
+              timef.write(comma)
+              timef.write('"' + str(times.get(time)) + '"')
+              comma = (', ')
+
   def printStdErr(self):
         for root, dirs, files in os.walk(self.args.outdir):
             for f in files:
@@ -544,7 +562,7 @@ class Pollenc:
       'trace': self.trace,
       'props': self.props,
       'cflags': self.args.cflags,
-      'xferstarttime' : self.ntpTime(),
+      'xferstarttime' : 0, #self.ntpTime() don't use this fcn.
       'user': {
         'token': self.args.userid, 
         'id': 0, 
@@ -556,12 +574,12 @@ class Pollenc:
         'mcu': self.args.mcu
       },
       'times' :  {                          # all milliseconds
-        'client_transmit_to_pcc':  0,       # time to transmit job from client to pcc
         'pcc_read_client_job':  0,          # time for pcc to read/load/validate
+        'pcc_total_time':  0,               # time pcc spent on job
 
         'redis_push_for_worker':  0,        # time to push job from pcc to redis
         'redis_wait_for_worker': 0,         # time waiting in queue for worker
-        'redis_pop_for_worker': 0,          # time to transmit job from redis to worker
+        'redis_wait_for_pcc': 0,            # time waiting in queue for pcc
 
         'worker_prepare_job': 0,            # time to unzip and prepare files
         'worker_run_pollen': 0,             # time to run pollen translator
@@ -569,11 +587,6 @@ class Pollenc:
         'worker_run_objcopy': 0,            # time to run objcopy
         'worker_finalize_job': 0,           # time to to zip completed job for return
 
-        'redis_wait_for_pcc': 0,            # time waiting in queue for pcc
-        'redis_pop_for_pcc':  0,            # time for pcc to pop redis queue
-
-        'pcc_total_time':  0,               # time pcc spent on job
-        'pcc_transmit_to_client':  0,       # time to transmit completed job to client
       }
     }
 
@@ -620,11 +633,8 @@ class Pollenc:
         break
   
       rmfile(self.workzip)
-  
-      print str(workobj['times'])
-
+      self.printTimes(workobj, 'times')
       self.log.trace(workobj)
-      # self.timeMsg("Compiling files", starttime)
       b64 = workobj['content']['source']
       zipbytes = base64.b64decode(b64)
       origpath = os.getcwd()
@@ -633,9 +643,9 @@ class Pollenc:
       os.chdir(origpath)
 
       self.log.info("Build complete. Output files are in " + self.args.outdir)
-
-      # self.printStdOut() #look for stderr and output path
-      # self.printStdErr() #look for stderr and output path
+      if self.getVerbose() == 3:
+          self.log.info("Build timing data can be found in the output directory in file timing_data.csv.")
+          self.log.info("(All times are in milliseconds.)")
 
 
 if __name__ == "__main__":
@@ -763,6 +773,8 @@ if __name__ == "__main__":
   if args.env != None:
       if args.env.endswith('.p'):
           args.env = args.env[:-2]
+
+  socket.setdefaulttimeout(5)
 
   Pollenc(args).run() 
 
