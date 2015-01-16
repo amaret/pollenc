@@ -288,7 +288,6 @@ class Pollenc:
       data = '\x1b' + 47 * '\0'
       # connect to server
       client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-      client.settimeout(5)
       client.sendto(data, address)
       data, address = client.recvfrom( 1024 )
       if data:
@@ -439,6 +438,11 @@ class Pollenc:
           timef = open(self.args.outdir + '/timing_data.csv', 'w+')
           times = rec[field]
           comma = ''
+          with open(self.args.outdir + '/.pollen_times', 'rb') as fp:
+              data = json.load(fp)  # times created by pollen.jar
+              times['worker_run_pollen'] = data.get('worker_run_pollen')
+              times['worker_run_gcc'] = data.get('worker_run_gcc')
+              times['worker_run_objcopy'] = data.get('worker_run_objcopy')
           for time in sorted(times.keys()):
               timef.write(comma)
               timef.write('"' + time + '"')
@@ -633,13 +637,13 @@ class Pollenc:
         break
   
       rmfile(self.workzip)
-      self.printTimes(workobj, 'times')
       self.log.trace(workobj)
       b64 = workobj['content']['source']
       zipbytes = base64.b64decode(b64)
       origpath = os.getcwd()
       os.chdir(self.args.outdir)
       self.unzip(zipbytes)
+      self.printTimes(workobj, 'times')
       os.chdir(origpath)
 
       self.log.info("Build complete. Output files are in " + self.args.outdir)
@@ -773,8 +777,6 @@ if __name__ == "__main__":
   if args.env != None:
       if args.env.endswith('.p'):
           args.env = args.env[:-2]
-
-  socket.setdefaulttimeout(5)
 
   Pollenc(args).run() 
 
