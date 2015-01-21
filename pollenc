@@ -247,6 +247,8 @@ class Pollenc:
     self.prn = args.prn
   
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    #if self.args.vvverbose == True:
+    self.log.debug("connecting to %s:%s" % (args.host, args.port))
     self.sock.connect((args.host, args.port))
 
     #
