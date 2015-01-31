@@ -25,3 +25,6 @@ remove the YOUR_USER_ID part of the above command.
 _We may want to consider a private binary pypiserver instance to remove the
 git requirement_
 
+During development, to test the pollenc commmand from the system path and to
+test the setup.py, install with `sudo pip install .`.
+
