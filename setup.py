@@ -5,8 +5,9 @@ from setuptools import setup
 
 setup(
     name="pollenc",
-    version="1.0",
+    version="0.9.0",
     install_requires=[
     ],
+    scripts=['bin/pollenc']
 )
 

@@ -2,7 +2,6 @@
 
 # Copyright 2014 Amaret Inc. All rights reserved.
 
-import configc
 import datetime
 import sys
 import subprocess
@@ -20,6 +19,27 @@ import socket
 import struct
 from os.path import isfile, join
 import textwrap
+
+'''
+Pollenc client configuration file
+'''
+
+pollenc_tcp = {
+            'interface': 'pcc.amaret.com',
+            'port': 5140,
+}
+
+
+redisQueues = {
+      'arm-none-eabi-gcc': 'POLLEN_CLC_ARM_NONE_EABI_GCC_1_0',
+      'avr-gcc': 'POLLEN_CLC_AVR_GCC_1_0',
+      'efm32-gcc': 'POLLEN_CLC_ARM_NONE_EABI_GCC_1_0',
+      'localhost-gcc': 'POLLEN_CLC_LOCALHOST_1_0'
+}
+
+clcConstants = {
+      'MAX_MSG_SIZE' : 1000000,
+}
 
 
 TIME1970 = 2208988800L 
@@ -602,8 +622,8 @@ class Pollenc:
     jsonstr = json.dumps(jsonobj)
     jlen = len(jsonstr)
 
-    if jlen > configc.clcConstants["MAX_MSG_SIZE"]:
-       MAX = configc.clcConstants["MAX_MSG_SIZE"]
+    if jlen > clcConstants["MAX_MSG_SIZE"]:
+       MAX = clcConstants["MAX_MSG_SIZE"]
        msg = str(("Request to upload %i bytes is refused. Upload size exceeds Pollen cloud compiler maximum of %i bytes.") % (jlen, MAX))
        print msg
        if jlen * 2 > MAX: 
@@ -680,14 +700,14 @@ if __name__ == "__main__":
             'Path prefixed with "@" is on server, else will be uploaded.')
   parser.add_argument('-e', '--environment', dest='env', action='store', help=helpStr, required=False)
 
-  tcpHost = configc.pollenc_tcp['interface']
+  tcpHost = pollenc_tcp['interface']
   parser.add_argument('--host', dest='host', action='store', help=argparse.SUPPRESS, default=tcpHost)
 
   parser.add_argument('-m', '--mcu', dest='mcu', action='store', help='microcontroller', required=False)
 
   parser.add_argument('-o', '--out',   dest='outdir', action='store', help='output dir', default='./build')
 
-  tcpPort = configc.pollenc_tcp['port']
+  tcpPort = pollenc_tcp['port']
   parser.add_argument('--port', dest='port', action='store', help=argparse.SUPPRESS, default=tcpPort, type=int)
 
   parser.add_argument('--props', dest='props', action='store', \
