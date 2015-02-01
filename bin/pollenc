@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # pylint: disable=missing-docstring
 # pylint: disable=invalid-name
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-public-methods
 ''' Pollenc client '''
 
 # Copyright 2014 Amaret Inc. All rights reserved.
@@ -24,8 +22,8 @@ import shutil
 from os.path import isfile, join
 
 POLLENC_TCP = {
-    'interface': 'pcc.amaret.com',
-    'port': 5140,
+    'interface': 'pcc1.amaret.com',
+    'port': 80,
 }
 
 
@@ -157,6 +155,8 @@ class ScreenLogger(object):
                 message['content']['entry'], message['content']['error']), \
                 indent, True)
 
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-public-methods
 class Pollenc(object):
 
   def getVerbose(self):
@@ -664,6 +664,8 @@ class Pollenc(object):
       self.log.info("Build timing data can be found in the output directory "\
                     "in file timing_data.csv.")
       self.log.info("(All times are in milliseconds.)")
+# pylint: enable=too-many-instance-attributes
+# pylint: enable=too-many-public-methods
 
 
 if __name__ == "__main__":
