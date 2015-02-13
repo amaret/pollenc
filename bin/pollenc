@@ -708,8 +708,9 @@ if __name__ == "__main__":
   parser.add_argument('-m', '--mcu', dest='mcu', action='store',
                       help='microcontroller', required=False)
 
+  helpStr = ('output dir. Warning: will be emptied before use.')
   parser.add_argument('-o', '--out', dest='outdir', action='store',
-                      help='output dir', default='./build')
+                      help=helpStr, default='./build')
 
   tcpPort = POLLENC_TCP['port']
   parser.add_argument('--port', dest='port', action='store',
@@ -798,7 +799,10 @@ if __name__ == "__main__":
     args.toolchain = "localhost-gcc"
 
   if os.path.exists(args.outdir):
-    rmdir(args.outdir)
+      if os.path.abspath(args.outdir) == os.getcwd():
+          print("Option error: -o output directory cannot be current directory")
+          sys.exit(1)
+      rmdir(args.outdir)
   os.mkdir(args.outdir)
 
   if not os.path.exists(args.entry):
