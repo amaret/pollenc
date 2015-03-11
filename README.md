@@ -1,7 +1,7 @@
-ACC CLIENT
+POLLENC
 ===========
 
-The Amaret Cloud Compiler Client
+##The Amaret Cloud Compiler Client
 
 The pollenc package is part of the pypi index:
 
