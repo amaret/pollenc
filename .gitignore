@@ -1,3 +1,6 @@
+build/
+dist/
+pollenc.egg-info/
 tmp/
 *.swp
 # Compiled source #
