@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 # pylint: disable=missing-docstring
 # pylint: disable=invalid-name
-''' Pollenc client '''
+''' Pollen Cloud Compiler Client '''
 
 # Copyright 2014 Amaret Inc. All rights reserved.
 
 import datetime
 import sys
-import argparse #cmdline overrides configrgs
+import argparse  # cmdline overrides configrgs
 import json
 import zipfile
 import glob
 import os
 import base64
+import socket
 import random
 import time
 import hashlib
-import socket
 import struct
 import shutil
 from os.path import isfile, join
@@ -28,796 +28,786 @@ POLLENC_TCP = {
 
 
 CLC_CONSTANTS = {
-    'MAX_MSG_SIZE' : 1000000,
+    'MAX_MSG_SIZE': 1000000,
 }
-
 
 TIME1970 = 2208988800L
 
+
 def rmfile(file_):
-  try:
-    os.remove(file_)
-  except OSError:
-    pass
+    try:
+        os.remove(file_)
+    except OSError:
+        pass
+
 
 def rmdir(dir_):
-  try:
-    shutil.rmtree(dir_)
-  except OSError:
-    pass
+    try:
+        shutil.rmtree(dir_)
+    except OSError:
+        pass
 
 
 class ScreenLogger(object):
 
-  def __init__(self, level="INFO"):
+    def __init__(self, level="INFO"):
 
-    self.indentsize = 2
-    self.colors = {'END': '\033[0m', 'LightRed': '\033[91m', 'LightGreen': \
-            '\033[92m', 'LightYellow': '\033[93m', 'LightBlue': '\033[94m', \
-            'LightPink': '\033[95m', 'LightCyan': '\033[96m', 'Blue': \
-            '\033[34m', 'White': '\33[97m'}
+        self.indentsize = 2
+        self.colors = {'END': '\033[0m', 'LightRed': '\033[91m', 'LightGreen':
+                       '\033[92m', 'LightYellow': '\033[93m', 'LightBlue':
+                       '\033[94m', 'LightPink': '\033[95m', 'LightCyan':
+                       '\033[96m', 'Blue': '\033[34m', 'White': '\33[97m'}
 
-    self.level_array = ["NOTICE", "INFO", "WARN", "ERROR", "DEBUG", "TRACE"]
+        self.level_array = ["NOTICE", "INFO", "WARN", "ERROR", "DEBUG",
+                            "TRACE"]
 
-    self.level = "INFO"
-    if level in self.level_array:
-      self.level = self.level_array.index(level)
+        self.level = "INFO"
+        if level in self.level_array:
+            self.level = self.level_array.index(level)
 
-    self.levels = {
-        'NOTICE': {'color': self.colors['LightCyan']},
-        'INFO':   {'color': self.colors['LightYellow']},
-        'WARN':   {'color': self.colors['LightPink']},
-        'ERROR':  {'color': self.colors['White']},
-        'DEBUG':  {'color': self.colors['LightGreen']},
-        'TRACE':  {'color': self.colors['LightGreen']},
-    }
+        self.levels = {
+            'NOTICE': {'color': self.colors['LightCyan']},
+            'INFO':   {'color': self.colors['LightYellow']},
+            'WARN':   {'color': self.colors['LightPink']},
+            'ERROR':  {'color': self.colors['White']},
+            'DEBUG':  {'color': self.colors['LightGreen']},
+            'TRACE':  {'color': self.colors['LightGreen']},
+        }
 
+    def output(self, level, message, indent, newline):
+        if level in self.levels.keys():
+            indent = " " * (self.indentsize * indent)
+            sys.stdout.write(self.levels[level]['color'])
 
-  def output(self, level, message, indent, newline):
-    if level in self.levels.keys():
-      indent = " " * (self.indentsize * indent)
-      sys.stdout.write(self.levels[level]['color'])
+            if level == "DEBUG" or level == "TRACE" or level == "ERROR":
+                sys.stdout.write("[" + level.lower() + "] ")
 
-      if level == "DEBUG" or level == "TRACE" or level == "ERROR":
-        sys.stdout.write("[" + level.lower() + "] ")
+            sys.stdout.write(indent + message)
+            sys.stdout.write(self.colors["END"])
+            if newline is True:
+                sys.stdout.write("\n")
 
-      sys.stdout.write(indent + message)
-      sys.stdout.write(self.colors["END"])
-      if newline == True:
-        sys.stdout.write("\n")
+    def notice(self, message, indent=0, newline=True):
+        self.output("NOTICE", message, indent, newline)
 
-  def notice(self, message, indent=0, newline=True):
-    self.output("NOTICE", message, indent, newline)
+    def info(self, message, indent=0, newline=True):
+        self.output("INFO", message, indent, newline)
 
-  def info(self, message, indent=0, newline=True):
-    self.output("INFO", message, indent, newline)
+    def warn(self, message, indent=0, newline=True):
+        self.output("WARN", message, indent, newline)
 
-  def warn(self, message, indent=0, newline=True):
-    self.output("WARN", message, indent, newline)
+    def error(self, message, indent=0, newline=True):
+        self.output("ERROR", message, indent, newline)
 
-  def error(self, message, indent=0, newline=True):
-    self.output("ERROR", message, indent, newline)
+    def debug(self, message, indent=0, newline=True):
+        self.output("DEBUG", message, indent, newline)
 
-  def debug(self, message, indent=0, newline=True):
-    self.output("DEBUG", message, indent, newline)
+    def ulog(self, msgobj, indent=0, trace=False):
+        level = msgobj['content']['level']
+        msg = msgobj['content']['source']
 
-  def ulog(self, msgobj, indent=0, trace=False):
-    level = msgobj['content']['level']
-    msg = msgobj['content']['source']
+        if trace is False and level != "TRACE":
+            if level == "OUTPUT":
+                self.notice(msg, indent)
+            else:
+                self.output(level, msg, indent, True)
+        # else:
+            # print trace info for the ulog message...
 
-    if trace == False and level != "TRACE":
-      if level == "OUTPUT":
-        self.notice(msg, indent)
-      else:
-        self.output(level, msg, indent, True)
-    #else:
-      # print trace info for the ulog message...
+    def trace(self, message, indent=0, newline=True):
+        if self.level < self.level_array.index("TRACE"):
+            return
 
+        if 'type' in message:
+            if message['type'] == 'userlog':
+                self.ulog(message, indent, trace=True)
+            elif message['type'] == 'request':
+                self.traceRequest(message, indent)
+            elif message['type'] == 'response':
+                self.traceResponse(message, indent)
+            return
 
-  def trace(self, message, indent=0, newline=True):
-    if self.level < self.level_array.index("TRACE"):
-      return
+        else:
+            self.output("TRACE", message, indent, newline)
 
-    if 'type' in message:
-      if message['type'] == 'userlog':
-        self.ulog(message, indent, trace=True)
-      elif message['type'] == 'request':
-        self.traceRequest(message, indent)
-      elif message['type'] == 'response':
-        self.traceResponse(message, indent)
-      return
+    def traceRequest(self, message, indent=0):
+        self.output("TRACE", "compile request, tid: %s, aid: %s" %
+                    (str(message['tid']), str(message['aid'])), indent, True)
 
-    else:
-      self.output("TRACE", message, indent, newline)
+        self.output("TRACE", "compiler: %s, mcu: %s, cflags: %s, props: %s" %
+                    (message['compiler'], message['content']['mcu'],
+                     message['cflags'], message['props']), indent, True)
 
+        self.output("TRACE", "entry: %s, environment: %s, print module: %s" %
+                    (message['content']['entry'], message['env'],
+                     message['prn']), indent, True)
 
-  def traceRequest(self, message, indent=0):
-    self.output("TRACE", "compile request, tid: %s, aid: %s" %
-                (str(message['tid']), str(message['aid'])), indent, True)
+        self.output("TRACE", "bundles: %s" % str(message['bundles']), indent,
+                    True)
 
-    self.output("TRACE", "compiler: %s, mcu: %s, cflags: %s, props: %s" %
-                (message['compiler'], message['content']['mcu'],
-                 message['cflags'], message['props']), indent, True)
+    def traceResponse(self, message, indent=0):
+        self.output("TRACE", "compile response, tid: %s, aid: %s" %
+                    (str(message['tid']), str(message['aid'])), indent, True)
 
-    self.output("TRACE", "entry: %s, environment: %s, print module: %s" %
-                (message['content']['entry'], message['env'], message['prn']),
-                indent, True)
+        self.output("TRACE", "user id: %s, user name: %s, file built: %s, "
+                    "error %s" % (message['user']['id'],
+                                  message['user']['name'],
+                                  message['content']['entry'],
+                                  message['content']['error']), indent, True)
 
-    self.output("TRACE", "bundles: %s" % str(message['bundles']), indent, True)
-
-
-  def traceResponse(self, message, indent=0):
-    self.output("TRACE", "compile response, tid: %s, aid: %s" %
-                (str(message['tid']), str(message['aid'])), indent, True)
-
-    self.output("TRACE", "user id: %s, user name: %s, file built: %s, " \
-                "error %s" % (message['user']['id'], message['user']['name'], \
-                message['content']['entry'], message['content']['error']), \
-                indent, True)
 
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
 class Pollenc(object):
 
-  def getVerbose(self):
-    if self.args.vvverbose == True:
-      return 3
-    if self.args.vverbose == True:
-      return 2
-    if self.args.verbose == True:
-      return 1
-    return 0
+    def getVerbose(self):
+        if self.args.vvverbose is True:
+            return 3
+        if self.args.vverbose is True:
+            return 2
+        if self.args.verbose is True:
+            return 1
+        return 0
 
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-statements
+    def __init__(self, args_):
+        self.log = ScreenLogger("DEBUG")
 
-  # pylint: disable=too-many-branches
-  # pylint: disable=too-many-statements
-  def __init__(self, args_):
-    self.log = ScreenLogger("DEBUG")
+        self.bundleNames = []
+        self.bundle_paths = []
+        self.trace = args_.trace  # superset of verbose output
+        self.verbose = True if args.verbose and not args_.trace else False
+        self.args = args_
+        self.aid = str(os.getpid()) + '_' + str(random.randint(1, 10000))
+        self.reply = 'POLLENC_REPLYTO_QUEUE_%s' % self.aid
+        self.workname = 'pollenc_' + self.aid
+        self.pollen_entry = '/tmp/' + self.workname + '_entry'
+        self.workzip = '/tmp/' + self.workname + '_src.zip'
+        self.translateOnly = self.args.translateOnly
+        self.props = self.args.props is not None
 
-    self.bundleNames = []
-    self.bundle_paths = []
-    self.trace = args_.trace # superset of verbose output
-    self.verbose = True if args.verbose and not args_.trace else False
-    self.args = args_
-    self.aid = str(os.getpid()) + '_' + str(random.randint(1, 10000))
-    self.reply = 'POLLENC_REPLYTO_QUEUE_%s' % self.aid
-    self.workname = 'pollenc_' + self.aid
-    self.pollen_entry = '/tmp/' + self.workname +  '_entry'
-    self.workzip = '/tmp/' + self.workname + '_src.zip'
-    self.translateOnly = self.args.translateOnly
-    self.props = self.args.props != None
+        if len(self.args.cbundle) > 0:
+            if self.args.cflags is None:
+                self.args.cflags = "\"-Icbundle\""
+            else:
+                self.args.cflags = "\"" + self.args.cflags + " -Icbundle \""
 
-    if len(self.args.cbundle) > 0:
-      if self.args.cflags == None:
-        self.args.cflags = "\"-Icbundle\""
-      else:
-        self.args.cflags = "\"" + self.args.cflags + " -Icbundle \""
+        # Set up the bundle_paths. Create tmp directories for
+        # entry, print module, environment to avoid copying all files in the
+        # bundles for each of these to the server. We copy only what is in the
+        # package of each of these. Also transmit the server local bundle
+        # names.
 
-    # Set up the bundle_paths. Create tmp directories for
-    # entry, print module, environment to avoid copying all files in the
-    # bundles for each of these to the server. We copy only what is in the
-    # package of each of these. Also transmit the server local bundle names.
-
-    (p1, m) = os.path.split(self.args.entry)
-    (bpath, pname) = os.path.split(p1)
-    (_, bname) = os.path.split(bpath)
-
-    if os.path.exists(self.pollen_entry):
-      rmdir(self.pollen_entry)
-
-    os.mkdir(self.pollen_entry)
-    os.mkdir(self.pollen_entry + '/' + bname)
-    os.mkdir(self.pollen_entry + '/' + bname + '/' + pname)
-    onlyfiles = [os.path.join(p1, f) for f in os.listdir(p1)
-                 if isfile(join(p1, f))]
-    for f in onlyfiles:
-      shutil.copy2(f, self.pollen_entry + '/' + bname + '/' + pname)
-    # if a props files is to be used, copy it to entry directory with
-    # name 'props'
-    if self.props and isfile(self.args.props):
-      shutil.copy2(self.args.props, self.pollen_entry + '/' + bname + '/' +
-                   pname + '/props')
-    self.args.entry = self.pollen_entry + '/' + bname + '/' + pname + '/' + m
-    self.bundle_paths.append(self.pollen_entry + '/' + bname)
-
-    for src in self.args.bundle_paths:
-      self.bundle_paths.append(src)
-
-    # if the environment module is local put its bundle in bundle list
-    if self.args.env != None:
-      if self.args.env[0] != '@': # not on the server
-        self.args.env = os.path.abspath(self.args.env)
-        (p1, m) = os.path.split(self.args.env)
+        (p1, m) = os.path.split(self.args.entry)
         (bpath, pname) = os.path.split(p1)
         (_, bname) = os.path.split(bpath)
-        self.pollen_env = '/tmp/' + self.workname +  '_env'
-        self.bundle_paths.append(self.pollen_env + '/' + bname)
-        if os.path.exists(self.pollen_env):
-          rmdir(self.pollen_env)
-        os.mkdir(self.pollen_env)
-        os.mkdir(self.pollen_env + '/' + bname)
-        os.mkdir(self.pollen_env + '/' + bname + '/' + pname)
-        shutil.copy2(self.args.env + '.p', self.pollen_env + '/' + bname + '/' +
-                     pname + '/' + m + '.p')
-        self.args.env = self.pollen_env + '/' + bname + '/' + pname + '/' + m
-    self.env = self.args.env
 
-    # if the print module impl is local put its bundle in bundle list
-    if self.args.prn != None:
-      if self.args.prn[0] != '@': # not on the server
-        self.args.prn = os.path.abspath(self.args.prn)
-        (p1, m) = os.path.split(self.args.prn)
-        (bpath, pname) = os.path.split(p1)
-        (_, bname) = os.path.split(bpath)
-        self.pollen_prn = '/tmp/' + self.workname +  '_prn'
-        self.bundle_paths.append(self.pollen_prn + '/' + bname)
-        if os.path.exists(self.pollen_prn):
-          rmdir(self.pollen_prn)
-        os.mkdir(self.pollen_prn)
-        os.mkdir(self.pollen_prn + '/' + bname)
-        os.mkdir(self.pollen_prn + '/' + bname + '/' + pname)
-        shutil.copy2(self.args.prn + '.p', self.pollen_prn + '/' + bname + '/' +
-                     pname + '/' + m + '.p')
-        self.args.prn = self.pollen_prn + '/' + bname + '/' + pname + '/' + m
-    self.prn = self.args.prn
+        if os.path.exists(self.pollen_entry):
+            rmdir(self.pollen_entry)
 
-    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #if self.args.vvverbose == True:
-    self.log.debug("connecting to %s:%s" % (self.args.host, self.args.port))
-    self.sock.connect((self.args.host, self.args.port))
-  # pylint: enable=too-many-branches
-  # pylint: enable=too-many-statements
+        os.mkdir(self.pollen_entry)
+        os.mkdir(self.pollen_entry + '/' + bname)
+        os.mkdir(self.pollen_entry + '/' + bname + '/' + pname)
+        onlyfiles = [os.path.join(p1, f) for f in os.listdir(p1)
+                     if isfile(join(p1, f))]
+        for f in onlyfiles:
+            shutil.copy2(f, self.pollen_entry + '/' + bname + '/' + pname)
+        # if a props files is to be used, copy it to entry directory with
+        # name 'props'
+        if self.props and isfile(self.args.props):
+            shutil.copy2(self.args.props, self.pollen_entry + '/' + bname +
+                         '/' + pname + '/props')
+        self.args.entry = self.pollen_entry + '/' + bname + '/' + \
+            pname + '/' + m
+        self.bundle_paths.append(self.pollen_entry + '/' + bname)
 
-    #
-    # begin comm
-    #
-  def write(self, msg):
-    hmsg = "%i\n%s" % (len(msg), msg)
-    self.sock.send(hmsg)
+        for src in self.args.bundle_paths:
+            self.bundle_paths.append(src)
 
-  def read(self):
+        # if the environment module is local put its bundle in bundle list
+        if self.args.env is not None:
+            if self.args.env[0] != '@':  # not on the server
+                self.args.env = os.path.abspath(self.args.env)
+                (p1, m) = os.path.split(self.args.env)
+                (bpath, pname) = os.path.split(p1)
+                (_, bname) = os.path.split(bpath)
+                self.pollen_env = '/tmp/' + self.workname + '_env'
+                self.bundle_paths.append(self.pollen_env + '/' + bname)
+                if os.path.exists(self.pollen_env):
+                    rmdir(self.pollen_env)
+                os.mkdir(self.pollen_env)
+                os.mkdir(self.pollen_env + '/' + bname)
+                os.mkdir(self.pollen_env + '/' + bname + '/' + pname)
+                shutil.copy2(self.args.env + '.p', self.pollen_env + '/' +
+                             bname + '/' + pname + '/' + m + '.p')
+                self.args.env = self.pollen_env + '/' + bname + '/' + \
+                    pname + '/' + m
+        self.env = self.args.env
 
-    hlen = 0
-    hlenRec = ''
-    while True:
-      b = self.sock.recv(1)
-      if b == '\n':
-        hlen = int(hlenRec)
-        break
-      hlenRec += b
+        # if the print module impl is local put its bundle in bundle list
+        if self.args.prn is not None:
+            if self.args.prn[0] != '@':  # not on the server
+                self.args.prn = os.path.abspath(self.args.prn)
+                (p1, m) = os.path.split(self.args.prn)
+                (bpath, pname) = os.path.split(p1)
+                (_, bname) = os.path.split(bpath)
+                self.pollen_prn = '/tmp/' + self.workname + '_prn'
+                self.bundle_paths.append(self.pollen_prn + '/' + bname)
+                if os.path.exists(self.pollen_prn):
+                    rmdir(self.pollen_prn)
+                os.mkdir(self.pollen_prn)
+                os.mkdir(self.pollen_prn + '/' + bname)
+                os.mkdir(self.pollen_prn + '/' + bname + '/' + pname)
+                shutil.copy2(self.args.prn + '.p', self.pollen_prn + '/'
+                             + bname + '/' + pname + '/' + m + '.p')
+                self.args.prn = self.pollen_prn + '/' + bname + '/' + pname \
+                    + '/' + m
+        self.prn = self.args.prn
 
-    BUFSZ = 1024
-    r = ''
-    while len(r) < hlen:
-      sz = BUFSZ
-      rem = hlen - len(r)
-      if rem < BUFSZ:
-        sz = rem
-      b = self.sock.recv(sz)
-      r += b
-    return r
-    #
-    # end comm
-    #
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # if self.args.vvverbose == True:
+        self.log.debug("connecting to %s:%s" % (self.args.host,
+                                                self.args.port))
+        self.sock.connect((self.args.host, self.args.port))
+    # pylint: enable=too-many-branches
+    # pylint: enable=too-many-statements
 
-  # roll our own to avoid nonstandard ntplib dependency
-  # note this code is crap. Due to unreliable response from ntp server.
-  def ntpTime(self):
-    address = ("pool.ntp.org", 123)
-    data = '\x1b' + 47 * '\0'
-    # connect to server
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client.sendto(data, address)
-    data, address = client.recvfrom(1024)
-    if data:
-      #print "Success: could get ntp time"
-      t = struct.unpack('!12I', data)[10]
-      t -= TIME1970
-      dt = datetime.datetime.strptime(time.ctime(t),
-                                      "%a %b %d %H:%M:%S %Y").isoformat()
-    else:
-      #print "Warning: could not get ntp time"
-      dt = datetime.datetime.now().isoformat()
-    client.close()
-    return dt
+        #
+        # begin comm
+        #
+    def write(self, msg):
+        hmsg = "%i\n%s" % (len(msg), msg)
+        self.sock.send(hmsg)
 
-  def timeMsg(self, task, starttime):
-    if self.getVerbose() < 3:
-      return
-    stoptime = datetime.datetime.now()
-    diff = stoptime - starttime
-    mdur = diff.microseconds
-    unit = " milliseconds" if mdur > 1000 else " microseconds"
-    if mdur > 1000:
-      mdur = mdur / 1000 # we only care about milliseconds
-    elif mdur == 0:
-      raise Exception('pollenc: impossible duration %s' % (mdur))
-    print str(task) + " took " + str(mdur) + unit
+    def read(self):
 
-  def makezip(self):
-    self.log.info("\nPreparing files...", 0)
-    self.log.debug("Work directory: " + self.pollen_entry)
-    self.log.debug("Bundle directories (%s): %s" %
-                   (str(len(self.bundle_paths) - 1),
-                    str(self.bundle_paths[1:])))
+        hlen = 0
+        hlenRec = ''
+        while True:
+            b = self.sock.recv(1)
+            if b == '\n':
+                hlen = int(hlenRec)
+                break
+            hlenRec += b
 
-    starttime = datetime.datetime.now()
-    rmfile(self.workzip)
-    zip_ = zipfile.ZipFile(self.workzip, 'w')
-    self.makeBundleZip(zip_)
-    self.makeCZip(zip_)
-    zip_.close()
-    self.log.debug("File preparation took %s seconds." %
-                   str((datetime.datetime.now() - starttime).total_seconds()))
+        BUFSZ = 1024
+        r = ''
+        while len(r) < hlen:
+            sz = BUFSZ
+            rem = hlen - len(r)
+            if rem < BUFSZ:
+                sz = rem
+            b = self.sock.recv(sz)
+            r += b
+        return r
+        #
+        # end comm
+        #
 
-  def zipBundles(self, zip_, paths):
-    tmpdir = '/tmp/' + self.workname
+    # roll our own to avoid nonstandard ntplib dependency
+    # note this code is crap. Due to unreliable response from ntp server.
+    def ntpTime(self):
+        address = ("pool.ntp.org", 123)
+        data = '\x1b' + 47 * '\0'
+        # connect to server
+        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        client.sendto(data, address)
+        data, address = client.recvfrom(1024)
+        if data:
+            # print "Success: could get ntp time"
+            t = struct.unpack('!12I', data)[10]
+            t -= TIME1970
+            dt = datetime.datetime.strptime(time.ctime(t),
+                                            "%a %b %d %H:%M:%S %Y").isoformat()
+        else:
+            # print "Warning: could not get ntp time"
+            dt = datetime.datetime.now().isoformat()
+        client.close()
+        return dt
 
-    for src in paths:
-      if src.find('*') != -1 or src.find('?') != -1:
-        wildcardLst = glob.glob(src)
-        if len(wildcardLst) > 0:
-          self.zipBundles(zip_, wildcardLst) #recurse for wildcard
-          continue
-      if not os.path.exists(src):
-        self.bundleNames.append(src)
-        continue #system bundle
-      rmdir(tmpdir)
-      bundleName = self.getBundleName(src)
-      if bundleName not in self.bundleNames:
-        self.bundleNames.append(bundleName)
-      shutil.copytree(src, tmpdir + '/' + bundleName)
-      self.zipdir(tmpdir, zip_)
-      rmdir(tmpdir)
+    def timeMsg(self, task, starttime):
+        if self.getVerbose() < 3:
+            return
+        stoptime = datetime.datetime.now()
+        diff = stoptime - starttime
+        mdur = diff.microseconds
+        unit = " milliseconds" if mdur > 1000 else " microseconds"
+        if mdur > 1000:
+            mdur = mdur / 1000  # we only care about milliseconds
+        elif mdur == 0:
+            raise Exception('pollenc: impossible duration %s' % (mdur))
+        print str(task) + " took " + str(mdur) + unit
 
-  def makeBundleZip(self, zip_):
-    if self.bundle_paths != None:
-      for src in self.bundle_paths:
-        if src[0] == '@': # not on the server
-          continue
-        _, _, _ = os.walk(src).next() # todo: ejs??
+    def makezip(self):
+        self.log.info("\nPreparing files...", 0)
+        self.log.debug("Work directory: " + self.pollen_entry)
+        self.log.debug("Bundle directories (%s): %s" %
+                       (str(len(self.bundle_paths) - 1),
+                        str(self.bundle_paths[1:])))
 
-      self.zipBundles(zip_, self.bundle_paths)
+        starttime = datetime.datetime.now()
+        rmfile(self.workzip)
+        zip_ = zipfile.ZipFile(self.workzip, 'w')
+        self.makeBundleZip(zip_)
+        self.makeCZip(zip_)
+        zip_.close()
+        self.log.debug("File preparation took %s seconds." %
+                       str((datetime.datetime.now() -
+                            starttime).total_seconds()))
 
-  def makeCZip(self, zip_):
-    ptmp = []
-    if self.args.cbundle == None:
-      return
-    else:
-      for d in self.args.cbundle:
-        if d[0] != '@': # not on the server
-          ptmp.append(d)
-    tmpdir = '/tmp/' + self.workname
+    def zipBundles(self, zip_, paths):
+        tmpdir = '/tmp/' + self.workname
 
-    if len(ptmp) > 0:
-      self.log.debug("C directory included: %s" % str(ptmp))
+        for src in paths:
+            if src.find('*') != -1 or src.find('?') != -1:
+                wildcardLst = glob.glob(src)
+                if len(wildcardLst) > 0:
+                    self.zipBundles(zip_, wildcardLst)  # recurse for wildcard
+                    continue
+            if not os.path.exists(src):
+                self.bundleNames.append(src)
+                continue  # system bundle
+            rmdir(tmpdir)
+            bundleName = self.getBundleName(src)
+            if bundleName not in self.bundleNames:
+                self.bundleNames.append(bundleName)
+            shutil.copytree(src, tmpdir + '/' + bundleName)
+            self.zipdir(tmpdir, zip_)
+            rmdir(tmpdir)
 
+    def makeBundleZip(self, zip_):
+        if self.bundle_paths is not None:
+            for src in self.bundle_paths:
+                if src[0] == '@':  # not on the server
+                    continue
+                _, _, _ = os.walk(src).next()  # todo: ejs??
 
-    for src in ptmp:
-      rmdir(tmpdir)
-      os.mkdir(tmpdir)
-      #for now - upload all files.
-      #shutil.copytree(src,tmpdir + '/cbundle/',
-      #ignore=shutil.ignore_patterns('*.a', '*.lib', '*.ld', '*.s'))
-      shutil.copytree(src, tmpdir + '/cbundle/')
-      self.zipdir(tmpdir, zip_)
-      rmdir(tmpdir)
+            self.zipBundles(zip_, self.bundle_paths)
 
-  def unzip(self, src):
-    starttime = datetime.datetime.now()
-    tmpzip = 'a.zip'
-    binfile = open(tmpzip, 'wb')
-    binfile.write(src)
-    binfile.close()
+    def makeCZip(self, zip_):
+        ptmp = []
+        if self.args.cbundle is None:
+            return
+        else:
+            for d in self.args.cbundle:
+                if d[0] != '@':  # not on the server
+                    ptmp.append(d)
+        tmpdir = '/tmp/' + self.workname
 
-    with zipfile.ZipFile(tmpzip) as zf:
-      for member in zf.namelist():
-        # passing exec permission thru zip did not work
-        # anyhow flags for exec are os dependent.
-        # this is a hack but should work okay.
-        zf.extract(member, '.')
-        name = member.split('-', 1)
-        if len(name) > 1:
-          if name[1] == "prog.out":
-            os.chmod(member, 0755)
+        if len(ptmp) > 0:
+            self.log.debug("C directory included: %s" % str(ptmp))
 
-    #z = zipfile.ZipFile(tmpzip)
-    #z.extractall('.')
-    rmfile(tmpzip)
-    self.timeMsg("Unzipping returned files", starttime)
+        for src in ptmp:
+            rmdir(tmpdir)
+            os.mkdir(tmpdir)
+            # for now - upload all files.
+            # shutil.copytree(src,tmpdir + '/cbundle/',
+            # ignore=shutil.ignore_patterns('*.a', '*.lib', '*.ld', '*.s'))
+            shutil.copytree(src, tmpdir + '/cbundle/')
+            self.zipdir(tmpdir, zip_)
+            rmdir(tmpdir)
 
-  def filenameOk(self, file_):
-    if file_.endswith('.zip'):
-      return False
-    if file_.endswith('stderr'):
-      return False
-    if file_.endswith('stdout'):
-      return False
-    if file_.endswith('.out'):
-      return False
-    if file_.endswith('.hex'):
-      return False
-    return True
+    def unzip(self, src):
+        starttime = datetime.datetime.now()
+        tmpzip = 'a.zip'
+        binfile = open(tmpzip, 'wb')
+        binfile.write(src)
+        binfile.close()
 
-  def zipdir(self, path, zip_):
-    origpath = os.getcwd()
-    os.chdir(path)
-    for root, _, files in os.walk('.'):
-      for file_ in files:
-        if self.filenameOk(file_):
-          zip_.write(os.path.join(root, file_))
-    os.chdir(origpath)
+        with zipfile.ZipFile(tmpzip) as zf:
+            for member in zf.namelist():
+                # passing exec permission thru zip did not work
+                # anyhow flags for exec are os dependent.
+                # this is a hack but should work okay.
+                zf.extract(member, '.')
+                name = member.split('-', 1)
+                if len(name) > 1:
+                    if name[1] == "prog.out":
+                        os.chmod(member, 0755)
 
-  def printTimes(self, rec, field):
-    if self.getVerbose() == 3:
-      timef = open(self.args.outdir + '/timing_data.csv', 'w+')
-      times = rec[field]
-      comma = ''
-      with open(self.args.outdir + '/.pollen_times', 'rb') as fp:
-        data = json.load(fp)  # times created by pollen.jar
-        times['worker_run_pollen'] = data.get('worker_run_pollen')
-        times['worker_run_gcc'] = data.get('worker_run_gcc')
-        times['worker_run_objcopy'] = data.get('worker_run_objcopy')
-      for time_ in sorted(times.keys()):
-        timef.write(comma)
-        timef.write('"' + time_ + '"')
-        comma = (', ')
-      timef.write('\n')
-      comma = ''
-      for time_ in sorted(times.keys()):
-        timef.write(comma)
-        timef.write('"' + str(times.get(time_)) + '"')
-        comma = (', ')
+        # z = zipfile.ZipFile(tmpzip)
+        # z.extractall('.')
+        rmfile(tmpzip)
+        self.timeMsg("Unzipping returned files", starttime)
 
-  def printStdErr(self):
-    for root, _, files in os.walk(self.args.outdir):
-      for f in files:
-        if f.endswith('err'):
-          if self.getVerbose() == 3:
-            print '\nMessages from server:'
-            with open(root + '/' + f, 'r') as fin:
-              print fin.read()
-              return
-          if self.getVerbose() > 0:
-            print '\nMessages from server found in ' + str(root) + '/' + str(f)
+    def filenameOk(self, file_):
+        if file_.endswith('.zip'):
+            return False
+        if file_.endswith('stderr'):
+            return False
+        if file_.endswith('stdout'):
+            return False
+        if file_.endswith('.out'):
+            return False
+        if file_.endswith('.hex'):
+            return False
+        return True
 
-  def printStdOut(self):
-    for root, _, files in os.walk(self.args.outdir):
-      for f in files:
-        if f.endswith('stdout'):
-          with open(root + '/' + f, 'r') as fin:
-            nr_of_lines = sum(1 for line in fin)
-            if nr_of_lines > 1:
-              print '\nHost phase print output:\n'
-              fin.close()
-              with open(root + '/' + f, 'r') as fin:
-                print fin.read()
+    def zipdir(self, path, zip_):
+        origpath = os.getcwd()
+        os.chdir(path)
+        for root, _, files in os.walk('.'):
+            for file_ in files:
+                if self.filenameOk(file_):
+                    zip_.write(os.path.join(root, file_))
+        os.chdir(origpath)
 
+    def printTimes(self, rec, field):
+        if self.getVerbose() == 3:
+            timef = open(self.args.outdir + '/timing_data.csv', 'w+')
+            times = rec[field]
+            comma = ''
+            with open(self.args.outdir + '/.pollen_times', 'rb') as fp:
+                data = json.load(fp)  # times created by pollen.jar
+                times['worker_run_pollen'] = data.get('worker_run_pollen')
+                times['worker_run_gcc'] = data.get('worker_run_gcc')
+                times['worker_run_objcopy'] = data.get('worker_run_objcopy')
+            for time_ in sorted(times.keys()):
+                timef.write(comma)
+                timef.write('"' + time_ + '"')
+                comma = (', ')
+            timef.write('\n')
+            comma = ''
+            for time_ in sorted(times.keys()):
+                timef.write(comma)
+                timef.write('"' + str(times.get(time_)) + '"')
+                comma = (', ')
 
+    def printStdErr(self):
+        for root, _, files in os.walk(self.args.outdir):
+            for f in files:
+                if f.endswith('err'):
+                    if self.getVerbose() == 3:
+                        print '\nMessages from server:'
+                        with open(root + '/' + f, 'r') as fin:
+                            print fin.read()
+                            return
+                    if self.getVerbose() > 0:
+                        print '\nMessages from server found in ' + str(root) \
+                            + '/' + str(f)
 
-  def getBundleName(self, path):
-    abspath = os.path.abspath(path)
-    (_, m) = os.path.split(abspath)
-    return m
+    def printStdOut(self):
+        for root, _, files in os.walk(self.args.outdir):
+            for f in files:
+                if f.endswith('stdout'):
+                    with open(root + '/' + f, 'r') as fin:
+                        nr_of_lines = sum(1 for line in fin)
+                        if nr_of_lines > 1:
+                            print '\nHost phase print output:\n'
+                            fin.close()
+                            with open(root + '/' + f, 'r') as fin:
+                                print fin.read()
 
-  def getData(self):
-    file_ = open(self.workzip, "rb")
-    data = ''
-    while True:
-      chunk = file_.read(1024)
-      if not chunk:
-        break  # EOF
-      data += chunk
-    file_.close()
-    return data
+    def getBundleName(self, path):
+        abspath = os.path.abspath(path)
+        (_, m) = os.path.split(abspath)
+        return m
 
-  def getRelToTmpDirName(self, filepath):
-    if filepath == None:
-      return None
-    abspath = os.path.abspath(filepath)
-    (r, _) = os.path.split(abspath)
-    l = abspath.split("/")
-    llen = len(l)
-    if llen < 3:
-      raise Exception('filename must be in <bundle>/<package>')
-    r = l[llen -3] + '/' + l[llen -2] + '/' + l[llen -1]
-    return r
+    def getData(self):
+        file_ = open(self.workzip, "rb")
+        data = ''
+        while True:
+            chunk = file_.read(1024)
+            if not chunk:
+                break  # EOF
+            data += chunk
+        file_.close()
+        return data
 
-  # pylint: disable=too-many-branches
-  def dbglog(self, phase, msg=None):
-    if not self.verbose and not self.trace:
-      return
-    if self.getVerbose() > 1:
-      print phase
-      return
-    if self.trace:
-      print "DBGLOG: " + phase
-      if not msg:
-        return
-      didprint = False
-      if 'compiler' in msg:
-        print "  dbg 'compiler' " + str(msg['compiler'])
-        didprint = True
-      if 'aid' in msg:
-        print "  dbg 'aid' " + str(msg['aid'])
-        didprint = True
-      if 'bundles' in msg:
-        print "  dbg 'bundles' " + str(msg['bundles'])
-        didprint = True
-      if 'content' in msg:
-        if 'entry' in msg['content']:
-          print "  dbg 'entry' " + str(msg['content']['entry'])
-        if 'mcu' in msg['content']:
-          print "  dbg 'mcu' " + str(msg['content']['mcu'])
-        didprint = True
-      if 'reply' in msg:
-        print "  dbg 'reply' " + str(msg['reply'])
-        didprint = True
-      if 'tid' in msg:
-        print "  dbg 'tid' " + str(msg['tid'])
-        didprint = True
-      if 'type' in msg:
-        print "  dbg 'type' " + str(msg['type'])
-        didprint = True
-      if not didprint:
-        print "   " + str(msg)
-  # pylint: enable=too-many-branches
+    def getRelToTmpDirName(self, filepath):
+        if filepath is None:
+            return None
+        abspath = os.path.abspath(filepath)
+        (r, _) = os.path.split(abspath)
+        l = abspath.split("/")
+        llen = len(l)
+        if llen < 3:
+            raise Exception('filename must be in <bundle>/<package>')
+        r = l[llen - 3] + '/' + l[llen - 2] + '/' + l[llen - 1]
+        return r
 
+    # pylint: disable=too-many-branches
+    def dbglog(self, phase, msg=None):
+        if not self.verbose and not self.trace:
+            return
+        if self.getVerbose() > 1:
+            print phase
+            return
+        if self.trace:
+            print "DBGLOG: " + phase
+            if not msg:
+                return
+            didprint = False
+            if 'compiler' in msg:
+                print "  dbg 'compiler' " + str(msg['compiler'])
+                didprint = True
+            if 'aid' in msg:
+                print "  dbg 'aid' " + str(msg['aid'])
+                didprint = True
+            if 'bundles' in msg:
+                print "  dbg 'bundles' " + str(msg['bundles'])
+                didprint = True
+            if 'content' in msg:
+                if 'entry' in msg['content']:
+                    print "  dbg 'entry' " + str(msg['content']['entry'])
+                if 'mcu' in msg['content']:
+                    print "  dbg 'mcu' " + str(msg['content']['mcu'])
+                didprint = True
+            if 'reply' in msg:
+                print "  dbg 'reply' " + str(msg['reply'])
+                didprint = True
+            if 'tid' in msg:
+                print "  dbg 'tid' " + str(msg['tid'])
+                didprint = True
+            if 'type' in msg:
+                print "  dbg 'type' " + str(msg['type'])
+                didprint = True
+            if not didprint:
+                print "   " + str(msg)
+    # pylint: enable=too-many-branches
 
-  def sendCompileRequest(self):
-    tid = hashlib.sha1(str(time.time()) + '-' + self.args.userid).hexdigest()
-    b64data = base64.b64encode(self.getData())
+    def sendCompileRequest(self):
+        tid = hashlib.sha1(str(time.time()) + '-' +
+                           self.args.userid).hexdigest()
+        b64data = base64.b64encode(self.getData())
 
-    # pylint: disable=line-too-long
-    jsonobj = {'compiler': self.args.toolchain,
-               'tid': tid,
-               'aid': self.aid,
-               'reply': self.reply,
-               'type': 'request',
-               'service': 'compile',
-               'bundles': self.bundleNames,
-               'env': self.getRelToTmpDirName(self.env),
-               'prn': self.getRelToTmpDirName(self.prn),
-               'trace': self.trace or self.getVerbose() == 3,
-               'props': self.props,
-               'cflags': self.args.cflags,
-               'xferstarttime' : 0, #self.ntpTime() don't use this fcn.
-               'user': {'token': self.args.userid,
-                        'id': 0,
-                        'name': 'None'
-                       },
-               'content' : {'source':  b64data,
-                            'entry': self.getRelToTmpDirName(self.args.entry),
-                            'mcu': self.args.mcu
-                           },
-               'times' : {'pcc_read_client_job':  0,    # time for pcc to read/load/validate
-                          'pcc_total_time':  0,         # time pcc spent on job
+        jsonobj = {'compiler': self.args.toolchain,
+                   'tid': tid,
+                   'aid': self.aid,
+                   'reply': self.reply,
+                   'type': 'request',
+                   'service': 'compile',
+                   'bundles': self.bundleNames,
+                   'env': self.getRelToTmpDirName(self.env),
+                   'prn': self.getRelToTmpDirName(self.prn),
+                   'trace': self.trace or self.getVerbose() == 3,
+                   'props': self.props,
+                   'cflags': self.args.cflags,
+                   'xferstarttime': 0,  # self.ntpTime() don't use this fcn.
+                   'user': {'token': self.args.userid,
+                            'id': 0,
+                            'name': 'None'},
+                   'content': {'source':  b64data,
+                               'entry':
+                                   self.getRelToTmpDirName(self.args.entry),
+                               'mcu': self.args.mcu},
+                   'times': {'pcc_read_client_job':  0,
+                             'pcc_total_time':  0,
 
-                          'redis_push_for_worker':  0,  # time to push job from pcc to redis
-                          'redis_wait_for_worker': 0,   # time waiting in queue for worker
-                          'redis_wait_for_pcc': 0,      # time waiting in queue for pcc
+                             'redis_push_for_worker':  0,
+                             'redis_wait_for_worker': 0,
+                             'redis_wait_for_pcc': 0,
 
-                          'worker_prepare_job': 0,      # time to unzip and prepare files
-                          'worker_run_pollen': 0,       # time to run pollen translator
-                          'worker_run_gcc': 0,          # time to run gcc compile
-                          'worker_run_objcopy': 0,      # time to run objcopy
-                          'worker_finalize_job': 0,     # time to to zip completed job for return
-                         }
-              }
-    # pylint: enable=line-too-long
+                             'worker_prepare_job': 0,
+                             'worker_run_pollen': 0,
+                             'worker_run_gcc': 0,
+                             'worker_run_objcopy': 0,
+                             'worker_finalize_job': 0}}
 
-    self.log.info("\nBuilding %s.p ..." % jsonobj['content']['entry'])
-    self.log.trace(jsonobj)
+        self.log.info("\nBuilding %s.p ..." % jsonobj['content']['entry'])
+        self.log.trace(jsonobj)
 
-    jsonstr = json.dumps(jsonobj)
-    jlen = len(jsonstr)
+        jsonstr = json.dumps(jsonobj)
+        jlen = len(jsonstr)
 
-    if jlen > CLC_CONSTANTS["MAX_MSG_SIZE"]:
-      MAX = CLC_CONSTANTS["MAX_MSG_SIZE"]
-      msg = str(("Request to upload %i bytes is refused. Upload size exceeds " \
-                 "Pollen cloud compiler maximum of %i bytes.") % (jlen, MAX))
-      print msg
-      if jlen * 2 > MAX:
-        print "Contact Amaret if you need an SDK C bundle for a target " \
-                "architecture installed in the cloud."
-      sys.exit(1)
+        if jlen > CLC_CONSTANTS["MAX_MSG_SIZE"]:
+            MAX = CLC_CONSTANTS["MAX_MSG_SIZE"]
+            msg = str(("Request to upload %i bytes is refused. Upload \
+                    size exceeds Pollen cloud compiler maximum of %i \
+                    bytes.") % (jlen, MAX))
+            print msg
+            if jlen * 2 > MAX:
+                print "Contact Amaret if you need an SDK C bundle for a \
+                        target architecture installed in the cloud."
+            sys.exit(1)
 
-    self.write(jsonstr)
+        self.write(jsonstr)
 
+    def run(self):
+        self.makezip()
+        self.sendCompileRequest()
 
-  def run(self):
-    self.makezip()
-    self.sendCompileRequest()
+        while True:
 
-    while True:
+            r = self.read()
+            workobj = json.loads(r)
+            self.log.trace(workobj)
 
-      r = self.read()
-      workobj = json.loads(r)
-      self.log.trace(workobj)
+            if workobj['type'] == 'userlog':
+                self.log.ulog(workobj)
+                continue
+            if workobj['type'] != 'response':
+                continue
+            if workobj['content']['error'] != 'None':
+                print 'pollenc error! %s' % (workobj['content']['error'])
+                return
+            break
 
-      if workobj['type'] == 'userlog':
-        self.log.ulog(workobj)
-        continue
-        # if self.getVerbose() > 0:
-        # self.log.info('[server message] %s' % (workobj['content']['source']))
-        # #print ('[server message] %s' % (workobj['content']['source']))
-        # continue
-      if workobj['type'] != 'response':
-        continue
-      if workobj['content']['error'] != 'None':
-        print 'pollenc error! %s' % (workobj['content']['error'])
-        return
-      break
+        rmfile(self.workzip)
+        self.log.trace(workobj)
+        b64 = workobj['content']['source']
+        zipbytes = base64.b64decode(b64)
+        origpath = os.getcwd()
+        os.chdir(self.args.outdir)
+        self.unzip(zipbytes)
+        self.printTimes(workobj, 'times')
+        os.chdir(origpath)
 
-    rmfile(self.workzip)
-    self.log.trace(workobj)
-    b64 = workobj['content']['source']
-    zipbytes = base64.b64decode(b64)
-    origpath = os.getcwd()
-    os.chdir(self.args.outdir)
-    self.unzip(zipbytes)
-    self.printTimes(workobj, 'times')
-    os.chdir(origpath)
-
-    self.log.info("Build complete. Output files are in " + self.args.outdir)
-    if self.getVerbose() == 3:
-      self.log.info("Build timing data can be found in the output directory "\
-                    "in file timing_data.csv.")
-      self.log.info("(All times are in milliseconds.)")
+        self.log.info("Build complete. Output files are in " +
+                      self.args.outdir)
+        if self.getVerbose() == 3:
+            self.log.info("Build timing data can be found in the output \
+                    directory in file timing_data.csv.")
+            self.log.info("(All times are in milliseconds.)")
 # pylint: enable=too-many-instance-attributes
 # pylint: enable=too-many-public-methods
 
 
 if __name__ == "__main__":
 
-  parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
 
-  ###
-  # Here we need to collect the arguments that a user may provide on the
-  #commandline for the
-  # translator and compiler. For example, the input bundles included, the
-  #output directory, any cflags,
-  # other flags, etc.
-  ####
-  # group = parser.add_mutually_exclusive_group()
+    parser.add_argument('-b', '--bundle', dest='bundle_paths', action='append',
+                        help="pollen bundle. Paths prefixed with '@' are on \
+                        server, the rest will be uploaded.",
+                        required=False)
 
-  parser.add_argument('-b', '--bundle', dest='bundle_paths', action='append', \
-          help="pollen bundle. Paths prefixed with '@' are on server, " \
-          "the rest will be uploaded.", required=False)
+    helpStr = ('Path prefixed with "@" is on server, else this is the ' +
+               'local root of subtree of c files to be uploaded to server. ' +
+               'Note root of local subtree uploaded to the cloud will ' +
+               'be \'cbundle\'.')
+    parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append',
+                        help=helpStr, required=False)
 
-  helpStr = ('Path prefixed with "@" is on server, else this is the ' +
-             'local root of subtree of c files to be uploaded to server. Note' +
-             ' root of local subtree uploaded to the cloud will ' +
-             'be \'cbundle\'.')
-  parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append',
-                      help=helpStr, required=False)
+    parser.add_argument('--cflags=', dest='cflags', action='store',
+                        help='quoted string containing extra options to pass \
+                        to C compiler.',
+                        required=False)
 
-  parser.add_argument('--cflags=', dest='cflags', action='store', \
-          help='quoted string containing extra options to pass to C compiler.',
-                      required=False)
+    helpStr = ('pollen module used for pollen.environment. ' +
+               'Path prefixed with "@" is on server, else will be uploaded.')
+    parser.add_argument('-e', '--environment', dest='env', action='store',
+                        help=helpStr, required=False)
 
-  helpStr = ('pollen module used for pollen.environment. ' +
-             'Path prefixed with "@" is on server, else will be uploaded.')
-  parser.add_argument('-e', '--environment', dest='env', action='store',
-                      help=helpStr, required=False)
+    tcpHost = POLLENC_TCP['interface']
+    parser.add_argument('--host', dest='host', action='store',
+                        help=argparse.SUPPRESS, default=tcpHost)
 
-  tcpHost = POLLENC_TCP['interface']
-  parser.add_argument('--host', dest='host', action='store',
-                      help=argparse.SUPPRESS, default=tcpHost)
+    parser.add_argument('-m', '--mcu', dest='mcu', action='store',
+                        help='microcontroller', required=False)
 
-  parser.add_argument('-m', '--mcu', dest='mcu', action='store',
-                      help='microcontroller', required=False)
+    helpStr = ('output dir. Warning: will be emptied before use.')
+    parser.add_argument('-o', '--out', dest='outdir', action='store',
+                        help=helpStr, default='./build')
 
-  helpStr = ('output dir. Warning: will be emptied before use.')
-  parser.add_argument('-o', '--out', dest='outdir', action='store',
-                      help=helpStr, default='./build')
+    tcpPort = POLLENC_TCP['port']
+    parser.add_argument('--port', dest='port', action='store',
+                        help=argparse.SUPPRESS, default=tcpPort, type=int)
 
-  tcpPort = POLLENC_TCP['port']
-  parser.add_argument('--port', dest='port', action='store',
-                      help=argparse.SUPPRESS, default=tcpPort, type=int)
+    parser.add_argument('--props', dest='props', action='store',
+                        help='properties file (for toolchain compiler and \
+                        options).',
+                        required=False)
 
-  parser.add_argument('--props', dest='props', action='store', \
-          help='properties file (for toolchain compiler and options).',
-                      required=False)
+    helpStr = 'pollen module that will implement the print protocol. ' \
+        + 'Path prefixed with "@" is on server, else will be uploaded.'
+    parser.add_argument('-p', '--print-module', dest='prn', action='store',
+                        help=helpStr, required=False)
 
-  helpStr = 'pollen module that will implement the print protocol. ' \
-          + 'Path prefixed with "@" is on server, else will be uploaded.'
-  parser.add_argument('-p', '--print-module', dest='prn', action='store',
-                      help=helpStr, required=False)
+    parser.add_argument('-t', '--toolchain', dest='toolchain', action='store',
+                        help='toolchain (compiler).', required=False,
+                        choices=['avr-gcc', "arm-none-eabi-gcc", "efm32-gcc",
+                                 "localhost-gcc"])
 
-  parser.add_argument('-t', '--toolchain', dest='toolchain', action='store', \
-          help='toolchain (compiler).', required=False, \
-          choices=['avr-gcc', "arm-none-eabi-gcc", "efm32-gcc",
-                   "localhost-gcc"])
+    parser.add_argument('--trace', dest='trace', action='store_true',
+                        help=argparse.SUPPRESS)
 
-  parser.add_argument('--trace', dest='trace', action='store_true',
-                      help=argparse.SUPPRESS)
+    # The userid argument is for later. It will be a user specified userid
+    # that identifies them.
+    parser.add_argument('-u', '--user', dest='userid', action='store',
+                        help='user credential', required=False)
 
-  # The userid argument is for later. It will be a user specified userid
-  # that identifies them.
-  parser.add_argument('-u', '--user', dest='userid', action='store',
-                      help='user credential', required=False)
+    parser.add_argument('-v', '--verbose', dest='verbose',
+                        action='store_true', help='verbose output')
 
-  parser.add_argument('-v', '--verbose', dest='verbose',
-                      action='store_true', help='verbose output')
+    parser.add_argument('-vv', '--vverbose', dest='vverbose',
+                        action='store_true', help='very verbose output')
 
-  parser.add_argument('-vv', '--vverbose', dest='vverbose',
-                      action='store_true', help='very verbose output')
+    parser.add_argument('-vvv', '--vvverbose', dest='vvverbose',
+                        action='store_true', help='very very verbose output')
 
-  parser.add_argument('-vvv', '--vvverbose', dest='vvverbose',
-                      action='store_true', help='very very verbose output')
+    parser.add_argument('entry', nargs='?', action='store',
+                        help='top level pollen file (entry point). Qualify ' +
+                        'with bundle and package.')
 
-  parser.add_argument('entry', nargs='?', action='store',
-                      help='top level pollen file (entry point). Qualify ' +
-                      'with bundle and package.')
+    args = parser.parse_args()
 
-  args = parser.parse_args()
+    if len(sys.argv) == 1:     # no args: print help
+        parser.print_help()
+        sys.exit(0)
 
-  if len(sys.argv) == 1:     # no args: print help
-    parser.print_help()
-    sys.exit(0)
+    if args.cbundle is None:
+        args.cbundle = []
 
-  if args.cbundle == None:
-    args.cbundle = []
+    if args.bundle_paths is None:
+        args.bundle_paths = []
 
-  if args.bundle_paths == None:
-    args.bundle_paths = []
+    if args.host is None:
+        args.host = ""
 
-  if args.host == None:
-    args.host = ""
+    if args.userid is None:
+        args.userid = 'TOKEN-' + str(random.randint(1, 10000))
 
-  if args.userid == None:
-    args.userid = 'TOKEN-' + str(random.randint(1, 10000))
+    if args.vverbose is True:
+        args.verbose = True
+    if args.vvverbose is True:
+        args.verbose = True
+        args.vverbose = True
 
-  if args.vverbose == True:
-    args.verbose = True
-  if args.vvverbose == True:
-    args.verbose = True
-    args.vverbose = True
+    args.translateOnly = False
+    if args.props is None and args.toolchain is None:
+        args.translateOnly = True
 
-  args.translateOnly = False
-  if args.props == None and args.toolchain == None:
-    args.translateOnly = True
+    if args.translateOnly and args.mcu is not None:
+        print "Option error: If --mcu option is specified then -t \
+                (toolchain) must also be specified"
+        sys.exit(1)
 
-  if args.translateOnly and args.mcu != None:
-    print "Option error: If --mcu option is specified then -t (toolchain) " \
-    "must also be specified"
-    sys.exit(1)
+    if not args.translateOnly and args.toolchain != "localhost-gcc" and  \
+            args.mcu is None:
+        print("Option error: --mcu option is required with toolchain " +
+              args.toolchain)
+        sys.exit(1)
 
-  if not args.translateOnly and args.toolchain != "localhost-gcc" and \
-  args.mcu == None:
-    print("Option error: --mcu option is required with toolchain " +
-          args.toolchain)
-    sys.exit(1)
+    if args.toolchain == "localhost-gcc" and args.mcu is not None:
+        print "Option error: --mcu option should not be specified with \
+                toolchain " + args.toolchain
+        sys.exit(1)
 
-  if args.toolchain == "localhost-gcc" and args.mcu != None:
-    print("Option error: --mcu option should not be specified with toolchain " +
-          args.toolchain)
-    sys.exit(1)
+    if args.translateOnly:
+        args.toolchain = "localhost-gcc"
 
-  if args.translateOnly:
-    args.toolchain = "localhost-gcc"
+    if os.path.exists(args.outdir):
+        if os.path.abspath(args.outdir) == os.getcwd():
+            print "Option error: -o output directory cannot be current \
+                    directory"
+            sys.exit(1)
+        rmdir(args.outdir)
+    os.mkdir(args.outdir)
 
-  if os.path.exists(args.outdir):
-      if os.path.abspath(args.outdir) == os.getcwd():
-          print("Option error: -o output directory cannot be current directory")
-          sys.exit(1)
-      rmdir(args.outdir)
-  os.mkdir(args.outdir)
+    if not os.path.exists(args.entry):
+        print "Module " + args.entry + " not found"
+        sys.exit()
 
-  if not os.path.exists(args.entry):
-    print "Module " + args.entry + " not found"
-    sys.exit()
+    args.entry = os.path.abspath(args.entry)
+    if args.entry.endswith('.p'):
+        args.entry = args.entry[:-2]
+    if args.prn is not None:
+        if args.prn.endswith('.p'):
+            args.prn = args.prn[:-2]
+    if args.env is not None:
+        if args.env.endswith('.p'):
+            args.env = args.env[:-2]
 
-  args.entry = os.path.abspath(args.entry)
-  if args.entry.endswith('.p'):
-    args.entry = args.entry[:-2]
-  if args.prn != None:
-    if args.prn.endswith('.p'):
-      args.prn = args.prn[:-2]
-  if args.env != None:
-    if args.env.endswith('.p'):
-      args.env = args.env[:-2]
-
-  Pollenc(args).run()
-
+    Pollenc(args).run()
