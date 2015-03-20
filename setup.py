@@ -1,14 +1,25 @@
 #!/usr/bin/env python
 
-'''pollenc setup.py'''
+'''
+pollen command line client setup.py
+
+installs a python package called "pollen" and
+generates a script in the user's path called "pollen"
+'''
+
 from setuptools import setup
 
 setup(
-    name="pollenc",
-    version="0.9.0",
+    name="pollen",
+    version="0.9.2",
     install_requires=[
     ],
-    scripts=['bin/pollenc'],
+    entry_points={
+        'console_scripts': [
+            'pollen=pollen.main:main',
+        ],
+    },
+    packages=['pollen'],
     author="Amaret, Inc",
     author_email="develop@amaret.com",
     description=("A command-line client to the Pollen Cloud Compiler."),
