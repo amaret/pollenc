@@ -12,12 +12,13 @@ import random
 from pollen import utils
 from pollen.scrlogger import ScrLogger
 from pollen.preparer import Preparer
-from pollen.socker import Socker
+from pollen.websocker import WebSocker
+#from pollen.socker import Socker as WebSocker
 
 LOG = ScrLogger()
 
 POLLENC_TCP = {
-    'interface': 'pcc1.amaret.com',
+    'interface': 'pccws.amaret.com',
     'port': 80,
 }
 
@@ -188,7 +189,8 @@ def main():
     # begin main program
     #
 
-    net     = Socker(pargs.host, pargs.port) # instantiate comm
+    #net     = Socker(pargs.host, pargs.port) # instantiate comm
+    net     = WebSocker(pargs.host, pargs.port) # instantiate comm
     prep    = Preparer(pargs)                # instantiate request packager
     request = prep.prepare()                 # prepare request
     workobj = net.talk(request)              # send request and get response
