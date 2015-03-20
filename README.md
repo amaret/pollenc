@@ -9,11 +9,11 @@ https://pypi.python.org/pypi/pollenc
 
 #INSTALL
 
-`sudo pip install pollenc`
+`sudo pip install pollen`
 
 #UN-INSTALL
 
-`sudo pip uninstall pollenc`
+`sudo pip uninstall pollen`
 
 #DEVELOPER NOTES
 
