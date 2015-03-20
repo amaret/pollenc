@@ -1,4 +1,5 @@
 ''' Pollen Cloud Compiler Socket Protocol Impl '''
+# pylint: disable=bad-whitespace
 
 import socket
 import json
@@ -6,12 +7,13 @@ from pollen.scrlogger import ScrLogger
 
 BUFSZ = 1024
 
+
 class Socker(object):
     ''' Pollen Cloud Compiler Socket Protocol Impl '''
 
     def __init__(self, host, port):
 
-        self.log = ScrLogger("DEBUG")
+        self.log = ScrLogger()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.log.debug("connecting to %s:%s" % (host,
@@ -44,4 +46,26 @@ class Socker(object):
             byt = self.sock.recv(siz)
             rec += byt
         return json.loads(rec)
+
+    def talk(self, request_obj):
+        ''' read and write'''
+
+        self.write(request_obj)
+
+        while True:
+
+            workobj = self.read()
+            self.log.trace(workobj)
+
+            if workobj['type'] == 'userlog':
+                self.log.ulog(workobj)
+                continue
+            if workobj['type'] != 'response':
+                continue
+            if workobj['content']['error'] != 'None':
+                print 'pollenc error! %s' % (workobj['content']['error'])
+                return
+            break
+
+        return workobj
 

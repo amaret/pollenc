@@ -1,7 +1,9 @@
 ''' Pollen Cloud Compiler Client Util Functions '''
 
+import zipfile
 import os
 import shutil
+import base64
 
 def get_data(filename):
     ''' read bin file into memory'''
@@ -15,6 +17,24 @@ def get_data(filename):
     file_.close()
     return data
 
+def unzip(src):
+    ''' unpack the response from the server'''
+    tmpzip = 'a.zip'
+    binfile = open(tmpzip, 'wb')
+    binfile.write(src)
+    binfile.close()
+
+    with zipfile.ZipFile(tmpzip) as zfile:
+        for member in zfile.namelist():
+            # passing exec permission thru zip did not work
+            # anyhow flags for exec are os dependent.
+            # this is a hack but should work okay.
+            zfile.extract(member, '.')
+            name = member.split('-', 1)
+            if len(name) > 1:
+                if name[1] == "prog.out":
+                    os.chmod(member, 0755)
+    rmfile(tmpzip)
 
 def get_rel_to_temp_dir_name(filepath):
     ''' calculate bundle name for filepath'''
@@ -51,4 +71,14 @@ def rmdir(dir_):
     except OSError:
         pass
 
+def unpack(workobj, outdir):
+    ''' extract bin data from json'''
+    # unpack response
+    b64 = workobj['content']['source']
+    zipbytes = base64.b64decode(b64)
+
+    origpath = os.getcwd()
+    os.chdir(outdir)
+    unzip(zipbytes)
+    os.chdir(origpath)
 

@@ -2,25 +2,44 @@
 
 ''' Pollen Cloud Compiler Client '''
 
+# pylint: disable=bad-whitespace
+
+import os
 import sys
 import argparse
-import os
 import random
 
+from pollen import utils
+from pollen.scrlogger import ScrLogger
 from pollen.preparer import Preparer
 from pollen.socker import Socker
-from pollen.utils import rmdir
 
+LOG = ScrLogger()
 
 POLLENC_TCP = {
     'interface': 'pcc1.amaret.com',
     'port': 80,
 }
 
+def _verbose(args):
+    ''' nonsense'''
+    if args.vvverbose is True:
+        return 3
+    if args.vverbose is True:
+        return 2
+    if args.verbose is True:
+        return 1
+    return 0
+
 def main():
     '''main entry point'''
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
+
+    #
+    # prepare pargs obj
+    #
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-b', '--bundle', dest='bundle_paths', action='append',
@@ -148,7 +167,7 @@ def main():
             print "Option error: -o output directory cannot be current \
                     directory"
             sys.exit(1)
-        rmdir(pargs.outdir)
+        utils.rmdir(pargs.outdir)
     os.mkdir(pargs.outdir)
 
     if not os.path.exists(pargs.entry):
@@ -165,8 +184,17 @@ def main():
         if pargs.env.endswith('.p'):
             pargs.env = pargs.env[:-2]
 
-    net = Socker(pargs.host, pargs.port)
-    prep = Preparer(pargs, net)
-    prep.prepare()
-    prep.run()
+    #
+    # begin main program
+    #
+
+    net     = Socker(pargs.host, pargs.port) # instantiate comm
+    prep    = Preparer(pargs)                # instantiate request packager
+    request = prep.prepare()                 # prepare request
+    workobj = net.talk(request)              # send request and get response
+
+    LOG.trace(workobj)
+    utils.unpack(workobj, pargs.outdir)            # unpack response
+
+    LOG.info("Build complete. Output files are in %s" % (pargs.outdir))
 

@@ -2,21 +2,21 @@
 # Copyright 2014 Amaret Inc. All rights reserved.
 ''' Pollen Cloud Compiler Zip Util'''
 
-from pollen.scrlogger import ScrLogger
-from pollen.utils import rmfile
-from pollen.utils import rmdir
-from pollen.utils import get_bundle_name
 import shutil
 import zipfile
 import os
 import glob
 import datetime
 
+from pollen import utils
+from pollen.scrlogger import ScrLogger
+
+
 class Zipper(object):
     ''' Pollen Cloud Compiler Zip Util'''
 
     def __init__(self, workzip, bundle_paths, workname, cbundle):
-        self.log          = ScrLogger("DEBUG")
+        self.log          = ScrLogger()
         self.workzip      = workzip
         self.bundle_paths = bundle_paths
         self.cbundle      = cbundle
@@ -32,7 +32,7 @@ class Zipper(object):
                         str(self.bundle_paths[1:])))
 
         starttime = datetime.datetime.now()
-        rmfile(self.workzip)
+        utils.rmfile(self.workzip)
         zip_ = zipfile.ZipFile(self.workzip, 'w')
         self._make_bundle_zip(zip_)
         self._make_c_zip(zip_)
@@ -40,26 +40,6 @@ class Zipper(object):
         self.log.debug("File preparation took %s seconds." %
                        str((datetime.datetime.now() -
                             starttime).total_seconds()))
-
-    def unzip(self, src):
-        ''' unpack the response from the server'''
-        tmpzip = 'a.zip'
-        binfile = open(tmpzip, 'wb')
-        binfile.write(src)
-        binfile.close()
-
-        with zipfile.ZipFile(tmpzip) as zfile:
-            for member in zfile.namelist():
-                # passing exec permission thru zip did not work
-                # anyhow flags for exec are os dependent.
-                # this is a hack but should work okay.
-                zfile.extract(member, '.')
-                name = member.split('-', 1)
-                if len(name) > 1:
-                    if name[1] == "prog.out":
-                        os.chmod(member, 0755)
-        rmfile(tmpzip)
-
 
     def _zip_bundles(self, zip_, paths):
         ''' add local bundles to the zip and maintain list of bundle names'''
@@ -73,13 +53,13 @@ class Zipper(object):
             if not os.path.exists(src):
                 self.bundle_names.append(src)
                 continue  # system bundle
-            rmdir(self.tmpdir)
-            bundle_name = get_bundle_name(src)
+            utils.rmdir(self.tmpdir)
+            bundle_name = utils.get_bundle_name(src)
             if bundle_name not in self.bundle_names:
                 self.bundle_names.append(bundle_name)
             shutil.copytree(src, self.tmpdir + '/' + bundle_name)
             self._zip_dir(self.tmpdir, zip_)
-            rmdir(self.tmpdir)
+            utils.rmdir(self.tmpdir)
 
     def _make_bundle_zip(self, zip_):
         ''' add local bundles to the zip and maintain list of bundle names'''
@@ -105,11 +85,11 @@ class Zipper(object):
             self.log.debug("C directory included: %s" % str(ptmp))
 
         for src in ptmp:
-            rmdir(self.tmpdir)
+            utils.rmdir(self.tmpdir)
             os.mkdir(self.tmpdir)
             shutil.copytree(src, self.tmpdir + '/cbundle/')
             self._zip_dir(self.tmpdir, zip_)
-            rmdir(self.tmpdir)
+            utils.rmdir(self.tmpdir)
 
     def _filename_ok(self, file_):
         ''' some files should not be sent to the server'''

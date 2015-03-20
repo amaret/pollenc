@@ -1,44 +1,86 @@
 # pylint: disable=missing-docstring
+# pylint: disable=bad-whitespace
 ''' Pollen Cloud Compiler Client Lib'''
 
 import sys
+import os
+
+RED    = '\033[91m'
+GREEN  = '\033[92m'
+YELLOW = '\033[93m'
+BLUE   = '\033[94m'
+PINK   = '\033[95m'
+CYAN   = '\033[96m'
+BLUE   = '\033[34m'
+WHITE  = '\33[97m'
+
+def has_colours(stream):
+    if not hasattr(stream, "isatty"):
+        return False
+    if not stream.isatty():
+        return False # auto color only on TTYs
+    try:
+        # pylint: disable=bare-except
+        import curses
+        curses.setupterm()
+        return curses.tigetnum("colors") > 2
+    except:
+        # guess false in case of error
+        return False
+
+LEVELS = [
+    "ERROR",
+    "WARN",
+    "NOTICE",
+    "INFO",
+    "DEBUG",
+    "TRACE"
+]
+
 
 class ScrLogger(object):
 
-    def __init__(self, level="INFO"):
+    def __init__(self):
+
+        self.has_colours = has_colours(sys.stdout)
+
+        self.level = os.getenv('LOGLEVEL', 'INFO')
 
         self.indentsize = 2
-        self.colors = {'END': '\033[0m', 'LightRed': '\033[91m', 'LightGreen':
-                       '\033[92m', 'LightYellow': '\033[93m', 'LightBlue':
-                       '\033[94m', 'LightPink': '\033[95m', 'LightCyan':
-                       '\033[96m', 'Blue': '\033[34m', 'White': '\33[97m'}
-
-        self.level_array = ["NOTICE", "INFO", "WARN", "ERROR", "DEBUG",
-                            "TRACE"]
-
-        self.level = "INFO"
-        if level in self.level_array:
-            self.level = self.level_array.index(level)
 
         self.levels = {
-            'NOTICE': {'color': self.colors['LightCyan']},
-            'INFO':   {'color': self.colors['LightYellow']},
-            'WARN':   {'color': self.colors['LightPink']},
-            'ERROR':  {'color': self.colors['White']},
-            'DEBUG':  {'color': self.colors['LightGreen']},
-            'TRACE':  {'color': self.colors['LightGreen']},
+            'NOTICE': {'color': CYAN},
+            'INFO':   {'color': WHITE},
+            'WARN':   {'color': YELLOW},
+            'ERROR':  {'color': RED},
+            'DEBUG':  {'color': BLUE},
+            'TRACE':  {'color': PINK},
         }
+
+        level_idx = LEVELS.index(self.level)
+        for lvl in self.levels.keys():
+            idx = LEVELS.index(lvl)
+            if idx > level_idx:
+                del self.levels[lvl]
+
+    def printout(self, text, colour=None):
+        if self.has_colours and colour is not None:
+            #seq = "\x1b[1;%dm" % (30+colour) + text + "\x1b[0m"
+            #seq = "\x1b[1;%s" % ("\033[95m") + text + "\x1b[0m"
+            seq = "\x1b[1;%s" % (colour) + text + "\x1b[0m"
+            sys.stdout.write(seq)
+        else:
+            sys.stdout.write(text)
 
     def output(self, level, message, indent, newline):
         if level in self.levels.keys():
             indent = " " * (self.indentsize * indent)
-            sys.stdout.write(self.levels[level]['color'])
 
             if level == "DEBUG" or level == "TRACE" or level == "ERROR":
-                sys.stdout.write("[" + level.lower() + "] ")
+                self.printout("[" + level.lower() + "] ",
+                              self.levels[level]['color'])
 
             sys.stdout.write(indent + message)
-            sys.stdout.write(self.colors["END"])
             if newline is True:
                 sys.stdout.write("\n")
 
@@ -70,7 +112,7 @@ class ScrLogger(object):
             # print trace info for the ulog message...
 
     def trace(self, message, indent=0, newline=True):
-        if self.level < self.level_array.index("TRACE"):
+        if self.level < LEVELS.index("TRACE"):
             return
 
         if 'type' in message:
