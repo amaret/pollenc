@@ -13,12 +13,11 @@ from pollen import utils
 from pollen.scrlogger import ScrLogger
 from pollen.preparer import Preparer
 from pollen.websocker import WebSocker
-#from pollen.socker import Socker as WebSocker
 
 LOG = ScrLogger()
 
 POLLENC_TCP = {
-    'interface': 'pccws.amaret.com',
+    'interface': 'pcc1.amaret.com',
     'port': 80,
 }
 
@@ -66,8 +65,10 @@ def main():
                         help=help_str, required=False)
 
     tcp_host = POLLENC_TCP['interface']
+    help_str = ('The Pollen Cloud Compiler gateway to connect to.  Default  \
+                 is %s' % tcp_host)
     parser.add_argument('--host', dest='host', action='store',
-                        help=argparse.SUPPRESS, default=tcp_host)
+                        help=help_str, default=tcp_host)
 
     parser.add_argument('-m', '--mcu', dest='mcu', action='store',
                         help='microcontroller', required=False)
@@ -77,8 +78,10 @@ def main():
                         help=help_str, default='./build')
 
     tcp_port = POLLENC_TCP['port']
+    help_str = ('The Pollen Cloud Compiler gateway port to connect to.  \
+                 Default is %d' % tcp_port)
     parser.add_argument('--port', dest='port', action='store',
-                        help=argparse.SUPPRESS, default=tcp_port, type=int)
+                        help=help_str, default=tcp_port, type=int)
 
     parser.add_argument('--props', dest='props', action='store',
                         help='properties file (for toolchain compiler and \
@@ -189,7 +192,6 @@ def main():
     # begin main program
     #
 
-    #net     = Socker(pargs.host, pargs.port) # instantiate comm
     net     = WebSocker(pargs.host, pargs.port) # instantiate comm
     prep    = Preparer(pargs)                # instantiate request packager
     request = prep.prepare()                 # prepare request
