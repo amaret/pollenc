@@ -173,8 +173,18 @@ class Preparer(object):
 
         self.jsonobj = jsonobj
 
+    def _clean(self):
+        if os.path.exists(self.args.outdir):
+            if os.path.abspath(self.args.outdir) == os.getcwd():
+                msg = "Option error: -o output directory cannot be current \
+                       directory"
+                raise Exception(msg)
+            utils.rmdir(self.args.outdir)
+        os.mkdir(self.args.outdir)
+
     def prepare(self):
 
+        self._clean()
         self._prepare_bundle()
         self._prepare_env_mod()
         self._prepare_print_mod()

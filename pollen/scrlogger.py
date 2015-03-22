@@ -50,11 +50,11 @@ class ScrLogger(object):
 
         self.levels = {
             'NOTICE': {'color': CYAN},
-            'INFO':   {'color': WHITE},
+            'INFO':   {'color': GREEN},
             'WARN':   {'color': YELLOW},
             'ERROR':  {'color': RED},
             'DEBUG':  {'color': BLUE},
-            'TRACE':  {'color': PINK},
+            'TRACE':  {'color': GREEN},
         }
 
         level_idx = LEVELS.index(self.level)
