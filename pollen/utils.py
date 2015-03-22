@@ -4,6 +4,7 @@ import zipfile
 import os
 import shutil
 import base64
+import uuid
 
 def get_data(filename):
     ''' read bin file into memory'''
@@ -81,4 +82,13 @@ def unpack(workobj, outdir):
     os.chdir(outdir)
     unzip(zipbytes)
     os.chdir(origpath)
+
+def anon_token():
+    ''' return one-time anonymous token '''
+    return 'ANON_TOKEN-' + str(uuid.uuid4())
+
+def token():
+    ''' look up token, if not found return one-time anonymous token '''
+    # ejs TODO: check ~/.pollenrc for token, use or gen anon below
+    return anon_token()
 

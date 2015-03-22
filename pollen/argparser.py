@@ -66,11 +66,6 @@ def _config_build_args(parser):
     parser.add_argument('--trace', dest='trace', action='store_true',
                         help=argparse.SUPPRESS)
 
-    # The userid argument is for later. It will be a user specified userid
-    # that identifies them.
-    parser.add_argument('-u', '--user', dest='userid', action='store',
-                        help='user credential', required=False)
-
     parser.add_argument('-v', '--verbose', dest='verbose',
                         action='store_true', help='verbose output')
 
@@ -103,10 +98,6 @@ def _process_build_args(pargs):
 
     if pargs.host is None:
         pargs.host = ""
-
-    # ejs TODO look for stored guid
-    if pargs.userid is None:
-        pargs.userid = 'TOKEN-' + str(random.randint(1, 10000))
 
     if pargs.vverbose is True:
         pargs.verbose = True
