@@ -13,7 +13,6 @@ from pollen.scrlogger import ScrLogger
 from pollen.zipper import Zipper
 from pollen import utils
 
-
 CLC_CONSTANTS = {
     'MAX_MSG_SIZE': 1000000,
 }
@@ -131,8 +130,9 @@ class Preparer(object):
                 self.prn = pname_path + '/' + mod
 
     def _prep_request(self, bundle_names):
+        token = utils.token()
         tid = hashlib.sha1(str(time.time()) + '-' +
-                           self.args.userid).hexdigest()
+                           token).hexdigest()
         b64data = base64.b64encode(utils.get_data(self.workzip))
 
         jsonobj = {'compiler': self.args.toolchain,
@@ -147,7 +147,7 @@ class Preparer(object):
                    'props'   : self.props,
                    'cflags'  : self.args.cflags,
                    'xferstarttime': 0,  # self.ntpTime() don't use this fcn.
-                   'user': {'token': self.args.userid,
+                   'user': {'token': token,
                             'id': 0,
                             'name': 'None'},
                    'content': {'source':  b64data,

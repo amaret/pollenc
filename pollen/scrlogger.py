@@ -74,7 +74,10 @@ class ScrLogger(object):
 
     def output(self, level, message, indent, newline):
         if level in self.levels.keys():
-            indent = " " * (self.indentsize * indent)
+            try:
+                indent = " " * (self.indentsize * indent)
+            except TypeError:
+                indent = ""
 
             if level == "DEBUG" or level == "TRACE" or level == "ERROR":
                 self.printout("[" + level.lower() + "] ",

@@ -23,7 +23,7 @@ class WebSocker(object):
         self.port = port
 
     def talk(self, request):
-        ''' read and write'''
+        ''' read and write.  returns success, result'''
 
         result = asyncio.Future()
 
@@ -32,27 +32,46 @@ class WebSocker(object):
             '''requries python2.7ish due to trollius coroutine syntax'''
 
             def onConnect(self, response):
-                print "Server connected: {0}".format(response.peer)
+                LOG.debug("Server connected: {0}".format(response.peer))
 
             # @trollius.COROutine
             @asyncio.coroutine
             def onOpen(self):
                 self.sendMessage(json.dumps(request).encode('utf8'))
 
+            def _quit(self, success, workobj):
+                ''' quit '''
+                result.set_result((success, workobj))
+                self.sendClose()
+
             def onMessage(self, payload, isBinary):
-                workobj = json.loads(payload.decode('utf8'))
+                msg = payload.decode('utf8')
+                workobj = json.loads(msg)
+
+                if 'type' not in workobj:
+                    LOG.error("bad response: %s", msg)
+                    self._quit(False, workobj)
+                    return
+
+                if 'content' not in workobj:
+                    LOG.error("bad response: %s", msg)
+                    self._quit(False, workobj)
+                    return
+
                 if workobj['type'] == 'userlog':
                     LOG.ulog(workobj)
                     return
                 if workobj['type'] != 'response':
                     return
-                if workobj['content']['error'] != 'None':
-                    print 'pollenc error! %s' % (workobj['content']['error'])
+                if 'error' in workobj['content'] \
+                        and  workobj['content']['error'] != 'None':
+                    self._quit(False, workobj)
+                    LOG.error('pollenc error! %s', workobj['content']['error'])
 
-                result.set_result(workobj)
+                self._quit(True, workobj)
 
             def onClose(self, wasClean, code, reason):
-                print "WebSocket connection closed: {0}".format(reason)
+                LOG.debug("WebSocket connection closed: {0}".format(reason))
 
         LOG.debug("starting ws conn to %s : %d" % (self.host, self.port))
         factory = WebSocketClientFactory("wss://%s:%d" %
@@ -65,5 +84,5 @@ class WebSocker(object):
         loop.run_until_complete(coro)
         ret = loop.run_until_complete(result)
         loop.close()
-        return ret
+        return ret[0], ret[1]
 

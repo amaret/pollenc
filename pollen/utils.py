@@ -4,6 +4,7 @@ import zipfile
 import os
 import shutil
 import base64
+import uuid
 
 def get_data(filename):
     ''' read bin file into memory'''
@@ -81,4 +82,26 @@ def unpack(workobj, outdir):
     os.chdir(outdir)
     unzip(zipbytes)
     os.chdir(origpath)
+
+def anon_token():
+    ''' return one-time anonymous token '''
+    return 'ANON_TOKEN-' + str(uuid.uuid4())
+
+def token():
+    ''' look up token, if not found return one-time anonymous token '''
+    rcfile = os.path.expanduser('~') + '/.pollenrc'
+    if not os.path.exists(rcfile):
+        return anon_token()
+
+    pollenrc = open(os.path.expanduser('~') + '/.pollenrc', 'r')
+    tok = pollenrc.readline()
+    pollenrc.close()
+    return tok
+
+def save_token(tok):
+    ''' write new token to ~/.pollenrc '''
+    pollenrc = open(os.path.expanduser('~') + '/.pollenrc', 'w')
+    pollenrc.write(tok)
+    pollenrc.write('\n')
+    pollenrc.close()
 
