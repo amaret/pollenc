@@ -4,6 +4,7 @@
 
 # pylint: disable=bad-whitespace
 import webbrowser
+import os
 
 from pollen import utils
 from pollen.scrlogger import ScrLogger
@@ -37,10 +38,13 @@ def main():
         success, workobj = net.talk(request)    # send request and get response
         if success:
             token = workobj['content']['new_token']
+            utils.save_token(token)
             LOG.debug("Storing new token. %s" % token)
             url = 'https://github.com/login/oauth/authorize'
-            url = url + '?client_id=' + 'b4081d536c6fa61025f6'
-            url = url + '&redirect_uri=' + 'http://localhost:8080/authcallback'
+            client_id = os.getenv('CLIENT_ID', 'b4081d536c6fa61025f6')
+            url = url + '?client_id=' + client_id
+            cburl = os.getenv('OAUTH_CB', 'http://pollen.amaret.com/auth')
+            url = url + '&redirect_uri=' + cburl
             #url = url + '&scope=' + 'repo'
             url = url + '&state=' + token
             webbrowser.open(url, new=0, autoraise=True)

@@ -89,6 +89,19 @@ def anon_token():
 
 def token():
     ''' look up token, if not found return one-time anonymous token '''
-    # ejs TODO: check ~/.pollenrc for token, use or gen anon below
-    return anon_token()
+    rcfile = os.path.expanduser('~') + '/.pollenrc'
+    if not os.path.exists(rcfile):
+        return anon_token()
+
+    pollenrc = open(os.path.expanduser('~') + '/.pollenrc', 'r')
+    tok = pollenrc.readline()
+    pollenrc.close()
+    return tok
+
+def save_token(tok):
+    ''' write new token to ~/.pollenrc '''
+    pollenrc = open(os.path.expanduser('~') + '/.pollenrc', 'w')
+    pollenrc.write(tok)
+    pollenrc.write('\n')
+    pollenrc.close()
 
