@@ -15,19 +15,24 @@ LOG = ScrLogger()
 def main():
     '''main entry point'''
 
-    pargs = parse()
+    cmd, pargs = parse()
 
     #
     # begin main program
     #
 
     net     = WebSocker(pargs.host, pargs.port) # instantiate comm
-    prep    = Preparer(pargs)                # instantiate request packager
-    request = prep.prepare()                 # prepare request
-    workobj = net.talk(request)              # send request and get response
 
-    LOG.trace(workobj)
-    utils.unpack(workobj, pargs.outdir)            # unpack response
+    if cmd is 'build':
 
-    LOG.info("Build complete. Output files are in %s" % (pargs.outdir))
+        prep    = Preparer(pargs)                # instantiate request packager
+        request = prep.prepare()                 # prepare request
+        workobj = net.talk(request)              # send request and get response
+
+        LOG.trace(workobj)
+        utils.unpack(workobj, pargs.outdir)            # unpack response
+        LOG.info("Build complete. Output files are in %s" % (pargs.outdir))
+
+    if cmd is 'login':
+        LOG.info("Authenticating...")
 

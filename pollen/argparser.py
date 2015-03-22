@@ -15,41 +15,31 @@ POLLENC_TCP = {
     'port': 80,
 }
 
-
-def parse():
-    ''' create arg object'''
+def _config_build_args(parser):
+    '''config build args'''
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-b', '--bundle', dest='bundle_paths', action='append',
-                        help="pollen bundle. Paths prefixed with '@' are on \
-                        server, the rest will be uploaded.",
+    parser.add_argument('-b', '--bundle', dest='bundle_paths',
+                        action='append',
+                        help="pollen bundle. Paths prefixed with '@' \
+                        are on server, the rest will be uploaded.",
                         required=False)
 
     help_str = ('Path prefixed with "@" is on server, else this is the ' +
                 'local root of subtree of c files to be uploaded to server. ' +
                 'Note root of local subtree uploaded to the cloud will ' +
                 'be \'cbundle\'.')
-    parser.add_argument('-cb', '--cbundle', dest='cbundle', action='append',
-                        help=help_str, required=False)
+    parser.add_argument('-cb', '--cbundle', dest='cbundle',
+                        action='append', help=help_str, required=False)
 
     parser.add_argument('--cflags=', dest='cflags', action='store',
-                        help='quoted string containing extra options to pass \
-                        to C compiler.',
-                        required=False)
+                        help='quoted string containing extra options \
+                        to pass to C compiler.', required=False)
 
     help_str = ('pollen module used for pollen.environment. ' +
                 'Path prefixed with "@" is on server, else will be uploaded.')
-    parser.add_argument('-e', '--environment', dest='env', action='store',
-                        help=help_str, required=False)
-
-    tcp_host = POLLENC_TCP['interface']
-    help_str = ('The Pollen Cloud Compiler gateway to connect to.  Default  \
-                 is %s' % tcp_host)
-    parser.add_argument('--host', dest='host', action='store',
-                        help=help_str, default=tcp_host)
+    parser.add_argument('-e', '--environment', dest='env',
+                        action='store', help=help_str, required=False)
 
     parser.add_argument('-m', '--mcu', dest='mcu', action='store',
                         help='microcontroller', required=False)
@@ -58,26 +48,20 @@ def parse():
     parser.add_argument('-o', '--out', dest='outdir', action='store',
                         help=help_str, default='./build')
 
-    tcp_port = POLLENC_TCP['port']
-    help_str = ('The Pollen Cloud Compiler gateway port to connect to.  \
-                 Default is %d' % tcp_port)
-    parser.add_argument('--port', dest='port', action='store',
-                        help=help_str, default=tcp_port, type=int)
-
     parser.add_argument('--props', dest='props', action='store',
-                        help='properties file (for toolchain compiler and \
-                        options).',
-                        required=False)
+                        help='properties file (for toolchain compiler \
+                        and options).', required=False)
 
     help_str = 'pollen module that will implement the print protocol. ' \
         + 'Path prefixed with "@" is on server, else will be uploaded.'
-    parser.add_argument('-p', '--print-module', dest='prn', action='store',
-                        help=help_str, required=False)
+    parser.add_argument('-p', '--print-module', dest='prn', \
+                        action='store', help=help_str, required=False)
 
-    parser.add_argument('-t', '--toolchain', dest='toolchain', action='store',
-                        help='toolchain (compiler).', required=False,
-                        choices=['avr-gcc', "arm-none-eabi-gcc", "efm32-gcc",
-                                 "localhost-gcc"])
+    parser.add_argument('-t', '--toolchain', dest='toolchain',
+                        action='store', help='toolchain (compiler).',
+                        required=False,
+                        choices=['avr-gcc', "arm-none-eabi-gcc",
+                                 "efm32-gcc", "localhost-gcc"])
 
     parser.add_argument('--trace', dest='trace', action='store_true',
                         help=argparse.SUPPRESS)
@@ -94,17 +78,22 @@ def parse():
                         action='store_true', help='very verbose output')
 
     parser.add_argument('-vvv', '--vvverbose', dest='vvverbose',
-                        action='store_true', help='very very verbose output')
+                        action='store_true', help='very very verbose \
+                               output')
 
-    parser.add_argument('entry', nargs='?', action='store',
-                        help='top level pollen file (entry point). Qualify ' +
-                        'with bundle and package.')
+    # parser.add_argument('entry', nargs='?',
+    parser.add_argument('entry', nargs=1,
+                        action='store',
+                        help='top level pollen file (entry point). \
+                              Qualify with bundle and package.')
 
-    pargs = parser.parse_args()
+    parser.set_defaults(func=_process_build_args)
 
-    if len(sys.argv) == 1:     # no args: print help
-        parser.print_help()
-        sys.exit(0)
+
+def _process_build_args(pargs):
+    '''enforce build args'''
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-statements
 
     if pargs.cbundle is None:
         pargs.cbundle = []
@@ -148,6 +137,11 @@ def parse():
     if pargs.translateOnly:
         pargs.toolchain = "localhost-gcc"
 
+    if not pargs.entry:
+        print "build entrypoint argument not found"
+        sys.exit()
+
+    pargs.entry = pargs.entry[0]
     if not os.path.exists(pargs.entry):
         print "Module " + pargs.entry + " not found"
         sys.exit()
@@ -162,5 +156,53 @@ def parse():
         if pargs.env.endswith('.p'):
             pargs.env = pargs.env[:-2]
 
-    return pargs
+    return 'build', pargs
+
+
+def _config_login_args(parser):
+    '''parse login args'''
+    parser.set_defaults(func=_process_login_args)
+
+def _process_login_args(pargs):
+    '''parse login args'''
+    return 'login', pargs
+
+def parse():
+    ''' create arg object'''
+
+    # create the top-level parser
+    root_parser = argparse.ArgumentParser(prog='pollen')
+    tcp_host = POLLENC_TCP['interface']
+    help_str = ('The Pollen Cloud Compiler gateway to connect to.  Default  \
+                 is %s' % tcp_host)
+    root_parser.add_argument('--host', dest='host', action='store',
+                             help=help_str, default=tcp_host)
+
+    tcp_port = POLLENC_TCP['port']
+    help_str = ('The Pollen Cloud Compiler gateway port to connect to.  \
+                 Default is %d' % tcp_port)
+    root_parser.add_argument('--port', dest='port', action='store',
+                             help=help_str, default=tcp_port, type=int)
+
+    root_help_msg = 'Run "pollen sub-command --help" for sub-command-specific \
+                     help. For example: pollen build --help'
+    subparsers = root_parser.add_subparsers(help=root_help_msg)
+
+    cp_help = 'Compile code.  Run this command with parameters indicating \
+               what code you wish to build and what bundles you wish to \
+               include.  Run "pollen build --help" for \
+              parameter help.'
+
+    build_parser = subparsers.add_parser('build', help=cp_help)
+    _config_build_args(build_parser)
+    lg_help = 'Authenticate your pollen client using an oauth2 provider. \
+              an authenticated pollen client can access private github \
+              repositories.'
+
+    login_parser = subparsers.add_parser('login', help=lg_help)
+    _config_login_args(login_parser)
+
+    pargs = root_parser.parse_args()
+
+    return pargs.func(pargs)
 
