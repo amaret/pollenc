@@ -41,7 +41,7 @@ def main():
             utils.save_token(token)
             LOG.debug("Storing new token. %s" % token)
             url = 'https://github.com/login/oauth/authorize'
-            client_id = os.getenv('CLIENT_ID', 'b4081d536c6fa61025f6')
+            client_id = os.getenv('CLIENT_ID', '6828e1c35f58e155e145')
             url = url + '?client_id=' + client_id
             cburl = os.getenv('OAUTH_CB', 'http://pollen.amaret.com/auth')
             url = url + '&redirect_uri=' + cburl
