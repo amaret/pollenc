@@ -48,7 +48,7 @@ def main():
                 url   = url + '?client_id=' + cid
                 cburl = os.getenv('OAUTH_CB', 'http://pollen.amaret.com/auth')
                 url  = url + '&redirect_uri=' + cburl
-                #url = url + '&scope=' + 'repo'
+                url = url + '&scope=' + 'repo,user'
                 url  = url + '&state=' + token
                 LOG.notice('Trying to open a browser.')
                 LOG.notice('If a browser window ' \
