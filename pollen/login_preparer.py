@@ -33,8 +33,6 @@ class LoginPreparer(object):
                             'id': 0,
                             'name': 'None'},}
 
-        LOGGER.info("\nLogging in...")
-
         self.jsonobj = jsonobj
 
     def prepare(self):

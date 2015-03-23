@@ -83,11 +83,12 @@ class ScrLogger(object):
                 self.printout("[" + level.lower() + "] ",
                               self.levels[level]['color'])
 
-            sys.stdout.write(indent + message)
+            sys.stdout.write(indent + str(message))
             if newline is True:
                 sys.stdout.write("\n")
 
     def notice(self, message, indent=0, newline=True):
+        self.output("NOTICE", '', indent, newline)
         self.output("NOTICE", message, indent, newline)
 
     def info(self, message, indent=0, newline=True):
