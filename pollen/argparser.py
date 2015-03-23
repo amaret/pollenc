@@ -7,11 +7,10 @@
 import argparse
 import os
 import sys
-import random
 
 
 POLLENC_TCP = {
-    'interface': 'pcc1.amaret.com',
+    'interface': 'pcc.amaret.com',
     'port': 80,
 }
 

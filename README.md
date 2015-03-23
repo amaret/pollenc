@@ -11,15 +11,22 @@ https://pypi.python.org/pypi/pollenc
 
 `sudo pip install pollen`
 
+begin exploring the pollen command with:
+
+`pollen --help`
+
 #UN-INSTALL
 
 `sudo pip uninstall pollen`
 
 #DEVELOPER NOTES
 
-To run the pollen command from source, use the pip command:
+To develop, test, and debug the pollen client you must clone the git
+repository and register your src copy with pip.  Your src copy will then
+be in your python2 path but as a symbolic link so that your edits to your
+src copy have immediate effect.
 
-## RUNNING FROM SRC
+## RUNNING FROM SRC VIA PIP
 * clone the pollenc repo
 * cd into the pollenc dir
 * `pip install -e .`
@@ -31,6 +38,12 @@ again unless you move your repo.
 Example: `Installing pollen script to /Users/navicore/Library/Python/2.7/bin`
 
 So the above user just adds that dir to PATH if it wasn't already included.
+
+## PRINT STACK TRACES
+
+The main.py entrypoint catches all exceptions and prints them according to
+the log levels (see below).  Use the TRACE log level to see the call stack
+if you are getting errors.
 
 ## LOG LEVELS
 
