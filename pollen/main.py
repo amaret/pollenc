@@ -1,4 +1,4 @@
-# Copyright 2014 Amaret Inc. All rights reserved.
+# Copyright Amaret, Inc 2011-2015. All rights reserved.
 
 ''' Pollen Cloud Compiler Client '''
 
@@ -44,12 +44,15 @@ def main():
                 LOG.debug("Storing new token. %s" % token)
 
                 url   = 'https://github.com/login/oauth/authorize'
+
+                url   = 'https://github.com/login/oauth/authorize'
                 cid   = os.getenv('CLIENT_ID', '6828e1c35f58e155e145')
                 url   = url + '?client_id=' + cid
                 cburl = os.getenv('OAUTH_CB', 'http://pollen.amaret.com/auth')
                 url  = url + '&redirect_uri=' + cburl
                 url = url + '&scope=' + 'repo,user'
                 url  = url + '&state=' + token
+
                 LOG.notice('Trying to open a browser.')
                 LOG.notice('If a browser window ' \
                            'does not open, copy the following into your ' \
