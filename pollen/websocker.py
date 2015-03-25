@@ -1,3 +1,4 @@
+# Copyright Amaret, Inc 2011-2015. All rights reserved.
 ''' Pollen Cloud Compiler Socket Protocol Impl '''
 # pylint: disable=bad-whitespace
 import logging

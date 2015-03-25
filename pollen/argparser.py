@@ -1,4 +1,4 @@
-# Copyright 2014 Amaret Inc. All rights reserved.
+# Copyright Amaret, Inc 2011-2015. All rights reserved.
 
 ''' Pollen Cloud Compiler Client Arg Parser'''
 

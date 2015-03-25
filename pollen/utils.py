@@ -1,3 +1,4 @@
+# Copyright Amaret, Inc 2011-2015. All rights reserved.
 ''' Pollen Cloud Compiler Client Util Functions '''
 
 import zipfile

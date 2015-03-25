@@ -1,3 +1,4 @@
+# Copyright Amaret, Inc 2011-2015. All rights reserved.
 # pylint: disable=missing-docstring
 # pylint: disable=bad-whitespace
 ''' Pollen Cloud Compiler Client Lib'''
