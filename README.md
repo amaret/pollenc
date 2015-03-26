@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/amaret/pollenc.svg)](https://travis-ci.org/amaret/pollenc)
+
 POLLENC
 ===========
 
