@@ -4,7 +4,6 @@
 ''' Pollen Cloud Compiler Client '''
 
 import os
-import random
 import shutil
 import hashlib
 import time
@@ -36,8 +35,8 @@ class Preparer(object):
         self.trace         = args_.trace  # superset of verbose output
         self.verbose       = True if args_.verbose and not args_.trace else \
                              False
-        self.aid           = str(os.getpid()) + '_' + \
-                             str(random.randint(1, 10000))
+        self.token         = utils.token()
+        self.aid           = hashlib.sha1(self.token).hexdigest()
         self.workname      = 'pollenc_' + self.aid
         self.pollen_env    = '/tmp/' + self.workname + '_env'
         self.pollen_prn    = '/tmp/' + self.workname + '_prn'

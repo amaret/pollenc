@@ -65,9 +65,11 @@ class WebSocker(object):
                 if workobj['type'] != 'response':
                     return
                 if 'error' in workobj['content'] \
-                        and  workobj['content']['error'] != 'None':
+                        and  workobj['content']['error'] != 'None' \
+                        and  workobj['content']['error'] != None:
                     self._quit(False, workobj)
-                    LOG.error('pollenc error! %s', workobj['content']['error'])
+                    LOG.error("pollenc error! %s" % workobj['content']['error'])
+                    return
 
                 self._quit(True, workobj)
 
