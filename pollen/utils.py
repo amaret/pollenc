@@ -97,7 +97,7 @@ def token():
     pollenrc = open(os.path.expanduser('~') + '/.pollenrc', 'r')
     tok = pollenrc.readline()
     pollenrc.close()
-    return tok
+    return tok.strip()
 
 def save_token(tok):
     ''' write new token to ~/.pollenrc '''
