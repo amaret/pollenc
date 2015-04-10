@@ -32,15 +32,11 @@ class Zipper(object):
                        (str(len(self.bundle_paths) - 1),
                         str(self.bundle_paths[1:])))
 
-        starttime = datetime.datetime.now()
         utils.rmfile(self.workzip)
         zip_ = zipfile.ZipFile(self.workzip, 'w')
         self._make_bundle_zip(zip_)
         self._make_c_zip(zip_)
         zip_.close()
-        self.log.debug("File preparation took %s seconds." %
-                       str((datetime.datetime.now() -
-                            starttime).total_seconds()))
 
     def _zip_bundles(self, zip_, paths):
         ''' add local bundles to the zip and maintain list of bundle names'''

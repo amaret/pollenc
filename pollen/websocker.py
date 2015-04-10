@@ -42,10 +42,12 @@ class WebSocker(object):
 
             def _quit(self, success, workobj):
                 ''' quit '''
+                LOG.trace("WebSocket _quit")
                 result.set_result((success, workobj))
                 self.sendClose()
 
             def onMessage(self, payload, isBinary):
+                LOG.trace("WebSocket onMessage")
                 msg = payload.decode('utf8')
                 workobj = json.loads(msg)
 
@@ -60,13 +62,16 @@ class WebSocker(object):
                     return
 
                 if workobj['type'] == 'userlog':
+                    LOG.trace("WebSocket onMessage userlog")
                     LOG.ulog(workobj)
                     return
                 if workobj['type'] != 'response':
+                    LOG.trace("WebSocket onMessage response")
                     return
                 if 'error' in workobj['content'] \
                         and  workobj['content']['error'] != 'None' \
                         and  workobj['content']['error'] != None:
+                    LOG.trace("WebSocket onMessage error")
                     self._quit(False, workobj)
                     LOG.error("pollenc error! %s" % workobj['content']['error'])
                     return
