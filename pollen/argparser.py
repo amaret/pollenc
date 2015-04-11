@@ -2,22 +2,18 @@
 
 ''' Pollen Cloud Compiler Client Arg Parser'''
 
-# pylint: disable=bad-whitespace
-
 import argparse
 import os
 import sys
-
 
 POLLENC_TCP = {
     'interface': 'pcc.amaret.com',
     'port': 80,
 }
 
+
 def _config_build_args(parser):
     '''config build args'''
-    # pylint: disable=too-many-branches
-    # pylint: disable=too-many-statements
     parser.add_argument('-b', '--bundle', dest='bundle_paths',
                         action='append',
                         help="pollen bundle. Paths prefixed with '@' \
@@ -53,7 +49,7 @@ def _config_build_args(parser):
 
     help_str = 'pollen module that will implement the print protocol. ' \
         + 'Path prefixed with "@" is on server, else will be uploaded.'
-    parser.add_argument('-p', '--print-module', dest='prn', \
+    parser.add_argument('-p', '--print-module', dest='prn',
                         action='store', help=help_str, required=False)
 
     parser.add_argument('-t', '--toolchain', dest='toolchain',
@@ -87,7 +83,6 @@ def _config_build_args(parser):
 def _process_build_args(pargs):
     '''enforce build args'''
     # pylint: disable=too-many-branches
-    # pylint: disable=too-many-statements
 
     if pargs.cbundle is None:
         pargs.cbundle = []
@@ -153,9 +148,11 @@ def _config_login_args(parser):
     '''parse login args'''
     parser.set_defaults(func=_process_login_args)
 
+
 def _process_login_args(pargs):
     '''parse login args'''
     return 'login', pargs
+
 
 def parse():
     ''' create arg object'''
@@ -195,4 +192,3 @@ def parse():
     pargs = root_parser.parse_args()
 
     return pargs.func(pargs)
-
