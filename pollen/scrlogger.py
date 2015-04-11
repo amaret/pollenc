@@ -1,25 +1,25 @@
 # Copyright Amaret, Inc 2011-2015. All rights reserved.
-# pylint: disable=missing-docstring
-# pylint: disable=bad-whitespace
 ''' Pollen Cloud Compiler Client Lib'''
 
 import sys
 import os
 
-RED    = '\033[91m'
-GREEN  = '\033[92m'
+RED = '\033[91m'
+GREEN = '\033[92m'
 YELLOW = '\033[93m'
-BLUE   = '\033[94m'
-PINK   = '\033[95m'
-CYAN   = '\033[96m'
-BLUE   = '\033[34m'
-WHITE  = '\33[97m'
+BLUE = '\033[94m'
+PINK = '\033[95m'
+CYAN = '\033[96m'
+BLUE = '\033[34m'
+WHITE = '\33[97m'
+
 
 def has_colours(stream):
+    ''' has color'''
     if not hasattr(stream, "isatty"):
         return False
     if not stream.isatty():
-        return False # auto color only on TTYs
+        return False  # auto color only on TTYs
     try:
         # pylint: disable=bare-except
         import curses
@@ -40,6 +40,7 @@ LEVELS = [
 
 
 class ScrLogger(object):
+    ''' obj '''
 
     def __init__(self):
 
@@ -65,15 +66,17 @@ class ScrLogger(object):
                 del self.levels[lvl]
 
     def printout(self, text, colour=None):
+        ''' print '''
         if self.has_colours and colour is not None:
-            #seq = "\x1b[1;%dm" % (30+colour) + text + "\x1b[0m"
-            #seq = "\x1b[1;%s" % ("\033[95m") + text + "\x1b[0m"
+            # seq = "\x1b[1;%dm" % (30+colour) + text + "\x1b[0m"
+            # seq = "\x1b[1;%s" % ("\033[95m") + text + "\x1b[0m"
             seq = "\x1b[1;%s" % (colour) + text + "\x1b[0m"
             sys.stdout.write(seq)
         else:
             sys.stdout.write(text)
 
     def output(self, level, message, indent, newline):
+        ''' out '''
         if level in self.levels.keys():
             try:
                 indent = " " * (self.indentsize * indent)
@@ -89,22 +92,28 @@ class ScrLogger(object):
                 sys.stdout.write("\n")
 
     def notice(self, message, indent=0, newline=True):
+        ''' f '''
         self.output("NOTICE", '', indent, newline)
         self.output("NOTICE", message, indent, newline)
 
     def info(self, message, indent=0, newline=True):
+        ''' f '''
         self.output("INFO", message, indent, newline)
 
     def warn(self, message, indent=0, newline=True):
+        ''' f '''
         self.output("WARN", message, indent, newline)
 
     def error(self, message, indent=0, newline=True):
+        ''' f '''
         self.output("ERROR", message, indent, newline)
 
     def debug(self, message, indent=0, newline=True):
+        ''' f '''
         self.output("DEBUG", message, indent, newline)
 
     def ulog(self, msgobj, indent=0, trace=False):
+        ''' f '''
         level = msgobj['content']['level']
         msg = msgobj['content']['source']
 
@@ -117,6 +126,7 @@ class ScrLogger(object):
             # print trace info for the ulog message...
 
     def trace(self, message, indent=0, newline=True):
+        ''' f '''
         if self.level < LEVELS.index("TRACE"):
             return
 
@@ -133,6 +143,7 @@ class ScrLogger(object):
             self.output("TRACE", message, indent, newline)
 
     def trace_request(self, message, indent=0):
+        ''' f '''
         self.output("TRACE", "compile request, tid: %s, aid: %s" %
                     (str(message['tid']), str(message['aid'])), indent, True)
 
@@ -148,12 +159,11 @@ class ScrLogger(object):
                     True)
 
     def trace_response(self, message, indent=0):
+        ''' f '''
         self.output("TRACE", "compile response, tid: %s, aid: %s" %
                     (str(message['tid']), str(message['aid'])), indent, True)
 
-        self.output("TRACE", "user id: %s, user name: %s, file built: %s, "
+        self.output("TRACE", "user id: %s, file built: %s, "
                     "error %s" % (message['user']['id'],
-                                  message['user']['name'],
                                   message['content']['entry'],
                                   message['content']['error']), indent, True)
-
