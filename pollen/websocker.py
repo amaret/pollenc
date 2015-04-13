@@ -15,6 +15,7 @@ BUFSZ = 1024
 
 LOG = ScrLogger()
 
+
 class WebSocker(object):
     ''' Pollen Cloud Compiler Socket Protocol Impl '''
 
@@ -38,7 +39,9 @@ class WebSocker(object):
             # @trollius.COROutine
             @asyncio.coroutine
             def onOpen(self):
-                self.sendMessage(json.dumps(request).encode('utf8'))
+                self.sendMessage(
+                    json.dumps(request,
+                               separators=(',', ':')).encode('utf8'))
 
             def _quit(self, success, workobj):
                 ''' quit '''
@@ -69,11 +72,12 @@ class WebSocker(object):
                     LOG.trace("WebSocket onMessage response")
                     return
                 if 'error' in workobj['content'] \
-                        and  workobj['content']['error'] != 'None' \
-                        and  workobj['content']['error'] != None:
+                        and workobj['content']['error'] != 'None' \
+                        and workobj['content']['error'] is not None:
                     LOG.trace("WebSocket onMessage error")
                     self._quit(False, workobj)
-                    LOG.error("pollenc error! %s" % workobj['content']['error'])
+                    LOG.error("pollenc error! %s" %
+                              workobj['content']['error'])
                     return
 
                 self._quit(True, workobj)
@@ -81,10 +85,9 @@ class WebSocker(object):
             def onClose(self, wasClean, code, reason):
                 LOG.debug("WebSocket connection closed: {0}".format(reason))
 
-        LOG.debug("starting ws conn to %s : %d" % (self.host, self.port))
-        factory = WebSocketClientFactory("wss://%s:%d" %
-                                         (self.host, self.port),
-                                         debug=False)
+        wsurl = "ws://%s:%d/wspollen" % (self.host, self.port)
+        LOG.debug("starting ws conn to %s" % (wsurl))
+        factory = WebSocketClientFactory(wsurl, debug=False)
         factory.protocol = PollenProtocol
 
         loop = asyncio.get_event_loop()
@@ -93,4 +96,3 @@ class WebSocker(object):
         ret = loop.run_until_complete(result)
         loop.close()
         return ret[0], ret[1]
-
