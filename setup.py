@@ -11,7 +11,7 @@ from setuptools import setup
 
 setup(
     name="pollen",
-    version="0.9.10",
+    version="0.9.11",
     install_requires=[
         'autobahn[asyncio]',
         'trollius'
