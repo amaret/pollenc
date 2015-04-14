@@ -48,7 +48,7 @@ def main():
                 url = 'https://github.com/login/oauth/authorize'
                 cid = os.getenv('CLIENT_ID', '6828e1c35f58e155e145')
                 url = url + '?client_id=' + cid
-                cburl = os.getenv('OAUTH_CB', 'http://pollen.amaret.com/auth')
+                cburl = os.getenv('OAUTH_CB', 'https://pollen.amaret.com/auth')
                 url = url + '&redirect_uri=' + cburl
                 url = url + '&scope=' + 'repo,user'
                 url = url + '&state=' + token

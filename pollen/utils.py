@@ -7,6 +7,7 @@ import shutil
 import base64
 import uuid
 
+
 def get_data(filename):
     ''' read bin file into memory'''
     file_ = open(filename, "rb")
@@ -18,6 +19,7 @@ def get_data(filename):
         data += chunk
     file_.close()
     return data
+
 
 def unzip(src):
     ''' unpack the response from the server'''
@@ -37,6 +39,7 @@ def unzip(src):
                 if name[1] == "prog.out":
                     os.chmod(member, 0755)
     rmfile(tmpzip)
+
 
 def get_rel_to_temp_dir_name(filepath):
     ''' calculate bundle name for filepath'''
@@ -73,6 +76,7 @@ def rmdir(dir_):
     except OSError:
         pass
 
+
 def unpack(workobj, outdir):
     ''' extract bin data from json'''
     # unpack response
@@ -84,9 +88,11 @@ def unpack(workobj, outdir):
     unzip(zipbytes)
     os.chdir(origpath)
 
+
 def anon_token():
     ''' return one-time anonymous token '''
     return 'ANON_TOKEN-' + str(uuid.uuid4())
+
 
 def token():
     ''' look up token, if not found return one-time anonymous token '''
@@ -99,10 +105,10 @@ def token():
     pollenrc.close()
     return tok.strip()
 
+
 def save_token(tok):
     ''' write new token to ~/.pollenrc '''
     pollenrc = open(os.path.expanduser('~') + '/.pollenrc', 'w')
     pollenrc.write(tok)
     pollenrc.write('\n')
     pollenrc.close()
-
