@@ -13,6 +13,7 @@ from pollen import utils
 
 LOGGER = ScrLogger()
 
+
 class LoginPreparer(object):
 
     def __init__(self, args_):
@@ -26,13 +27,13 @@ class LoginPreparer(object):
         tid = hashlib.sha1(str(time.time()) + '-' +
                            token).hexdigest()
 
-        jsonobj = {'tid'     : tid,
-                   'aid'     : self.aid,
-                   'type'    : 'request',
-                   'service' : 'login',
+        jsonobj = {'tid': tid,
+                   'aid': self.aid,
+                   'type': 'request',
+                   'service': 'login',
                    'user': {'token': token,
                             'id': 0,
-                            'name': 'None'},}
+                            'name': 'None'}}
 
         self.jsonobj = jsonobj
 
@@ -41,4 +42,3 @@ class LoginPreparer(object):
         self._prep_request()
 
         return self.jsonobj
-

@@ -7,7 +7,7 @@ import os
 import sys
 
 POLLENC_TCP = {
-    'interface': 'pcc.amaret.com',
+    'interface': 'pollen.amaret.com',
     'port': 80,
 }
 
