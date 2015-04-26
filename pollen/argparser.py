@@ -7,7 +7,7 @@ import os
 import sys
 
 POLLENC_TCP = {
-    'interface': 'pollen.amaret.com',
+    'interface': 'amaret.com',
     'port': 80,
 }
 
@@ -190,5 +190,8 @@ def parse():
     _config_login_args(login_parser)
 
     pargs = root_parser.parse_args()
+
+    cmdline = " ".join(sys.argv)
+    #pargs['cmdline'] = cmdline
 
     return pargs.func(pargs)

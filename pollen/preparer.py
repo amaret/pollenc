@@ -1,6 +1,4 @@
 # Copyright Amaret, Inc 2011-2015. All rights reserved.
-# pylint: disable=missing-docstring
-# pylint: disable=bad-whitespace
 ''' Pollen Cloud Compiler Client '''
 
 import os
@@ -19,11 +17,10 @@ CLC_CONSTANTS = {
 
 
 class Preparer(object):
+    '''prep'''
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, args_):
-        # pylint: disable=too-many-branches
-        # pylint: disable=too-many-statements
 
         self.args = args_
 
@@ -31,18 +28,17 @@ class Preparer(object):
 
         self.jsonobj = ""
 
-        self.bundle_paths  = []
-        self.trace         = args_.trace  # superset of verbose output
-        self.verbose       = True if args_.verbose and not args_.trace else \
-                             False
-        self.token         = utils.token()
-        self.aid           = hashlib.sha1(self.token).hexdigest()
-        self.workname      = 'pollenc_' + self.aid
-        self.pollen_env    = '/tmp/' + self.workname + '_env'
-        self.pollen_prn    = '/tmp/' + self.workname + '_prn'
-        self.pollen_entry  = '/tmp/' + self.workname + '_entry'
-        self.workzip       = '/tmp/' + self.workname + '_src.zip'
-        self.props         = self.args.props is not None
+        self.bundle_paths = []
+        self.trace = args_.trace  # superset of verbose output
+        self.verbose = True if args_.verbose and not args_.trace else False
+        self.token = utils.token()
+        self.aid = hashlib.sha1(self.token).hexdigest()
+        self.workname = 'pollenc_' + self.aid
+        self.pollen_env = '/tmp/' + self.workname + '_env'
+        self.pollen_prn = '/tmp/' + self.workname + '_prn'
+        self.pollen_entry = '/tmp/' + self.workname + '_entry'
+        self.workzip = '/tmp/' + self.workname + '_src.zip'
+        self.props = self.args.props is not None
 
         if len(self.args.cbundle) > 0:
             if self.args.cflags is None:
@@ -54,6 +50,7 @@ class Preparer(object):
         self.env = self.args.env
 
     def _verbose(self):
+        '''verbose'''
         if self.args.vvverbose is True:
             return 3
         if self.args.vverbose is True:
@@ -63,15 +60,16 @@ class Preparer(object):
         return 0
 
     def _prepare_bundle(self):
+        '''prep bundle'''
         # Set up the bundle_paths. Create tmp directories for
         # entry, print module, environment to avoid copying all files in the
         # bundles for each of these to the server. We copy only what is in the
         # package of each of these. Also transmit the server local bundle
         # names.
 
-        (pname1, mod)  = os.path.split(self.args.entry)
+        (pname1, mod) = os.path.split(self.args.entry)
         (bpath, pname) = os.path.split(pname1)
-        (_, bname)     = os.path.split(bpath)
+        (_, bname) = os.path.split(bpath)
 
         if os.path.exists(self.pollen_entry):
             utils.rmdir(self.pollen_entry)
@@ -94,13 +92,14 @@ class Preparer(object):
             self.bundle_paths.append(src)
 
     def _prepare_env_mod(self):
+        '''prep env'''
         # if the environment module is local put its bundle in bundle list
         if self.args.env is not None:
             if self.args.env[0] != '@':  # not on the server
-                self.args.env  = os.path.abspath(self.args.env)
-                (pname1, mod)        = os.path.split(self.args.env)
+                self.args.env = os.path.abspath(self.args.env)
+                (pname1, mod) = os.path.split(self.args.env)
                 (bpath, pname) = os.path.split(pname1)
-                (_, bname)     = os.path.split(bpath)
+                (_, bname) = os.path.split(bpath)
                 bname_path = self.pollen_env + '/' + bname
                 self.bundle_paths.append(bname_path)
                 if os.path.exists(self.pollen_env):
@@ -112,13 +111,14 @@ class Preparer(object):
                 self.env = pname_path + '/' + mod
 
     def _prepare_print_mod(self):
+        '''prep prnt'''
         # if the print module impl is local put its bundle in bundle list
         if self.args.prn is not None:
             if self.args.prn[0] != '@':  # not on the server
-                self.args.prn  = os.path.abspath(self.args.prn)
-                (pname1, mod)        = os.path.split(self.args.prn)
+                self.args.prn = os.path.abspath(self.args.prn)
+                (pname1, mod) = os.path.split(self.args.prn)
                 (bpath, pname) = os.path.split(pname1)
-                (_, bname)     = os.path.split(bpath)
+                (_, bname) = os.path.split(bpath)
                 bname_path = self.pollen_prn + '/' + bname
                 self.bundle_paths.append(bname_path)
                 if os.path.exists(self.pollen_prn):
@@ -130,50 +130,56 @@ class Preparer(object):
                 self.prn = pname_path + '/' + mod
 
     def _prep_request(self, bundle_names):
+        '''prep req'''
         token = utils.token()
         tid = hashlib.sha1(str(time.time()) + '-' +
                            token).hexdigest()
         b64data = base64.b64encode(utils.get_data(self.workzip))
 
         jsonobj = {'compiler': self.args.toolchain,
-                   'tid'     : tid,
-                   'aid'     : self.aid,
-                   'type'    : 'request',
-                   'service' : 'compile',
-                   'bundles' : bundle_names,
-                   'env'     : utils.get_rel_to_temp_dir_name(self.env),
-                   'prn'     : utils.get_rel_to_temp_dir_name(self.prn),
-                   'trace'   : self.trace or self._verbose() == 3,
-                   'props'   : self.props,
-                   'cflags'  : self.args.cflags,
+                   'tid': tid,
+                   'aid': self.aid,
+                   'type': 'request',
+                   'service': 'compile',
+                   'bundles': bundle_names,
+                   'env': utils.get_rel_to_temp_dir_name(self.env),
+                   'prn': utils.get_rel_to_temp_dir_name(self.prn),
+                   'trace': self.trace or self._verbose() == 3,
+                   'props': self.props,
+                   # 'cflags': self.args.cflags,
                    'xferstarttime': 0,  # self.ntpTime() don't use this fcn.
                    'user': {'token': token,
                             'id': 0,
                             'name': 'None'},
                    'content': {'source':  b64data,
+                               # todo: unsafe json!
+                               # 'cmdline': self.args.cmdline,
                                'entry':
                                    utils.get_rel_to_temp_dir_name(
                                        self.args.entry),
                                'mcu': self.args.mcu},
-                   'times': {'pcc_read_client_job'   : 0,
-                             'pcc_total_time'        : 0,
+                   'times': {'pcc_read_client_job': 0,
+                             'pcc_total_time': 0,
 
-                             'redis_push_for_worker' : 0,
-                             'redis_wait_for_worker' : 0,
-                             'redis_wait_for_pcc'    : 0,
+                             'redis_push_for_worker': 0,
+                             'redis_wait_for_worker': 0,
+                             'redis_wait_for_pcc': 0,
 
-                             'worker_prepare_job'    : 0,
-                             'worker_run_pollen'     : 0,
-                             'worker_run_gcc'        : 0,
-                             'worker_run_objcopy'    : 0,
-                             'worker_finalize_job'   : 0}}
+                             'worker_prepare_job': 0,
+                             'worker_run_pollen': 0,
+                             'worker_run_gcc': 0,
+                             'worker_run_objcopy': 0,
+                             'worker_finalize_job': 0}}
 
+        if 'cflags' in self.args:
+            jsonobj['cflags'] = self.args.cflags
         self.log.info("\nBuilding %s.p ..." % jsonobj['content']['entry'])
         self.log.trace(jsonobj)
 
         self.jsonobj = jsonobj
 
     def _clean(self):
+        '''clean'''
         if os.path.exists(self.args.outdir):
             if os.path.abspath(self.args.outdir) == os.getcwd():
                 msg = "Option error: -o output directory cannot be current \
@@ -183,6 +189,7 @@ class Preparer(object):
         os.mkdir(self.args.outdir)
 
     def prepare(self):
+        '''prepare'''
 
         self._clean()
         self._prepare_bundle()
@@ -196,4 +203,3 @@ class Preparer(object):
         utils.rmfile(self.workzip)
 
         return self.jsonobj
-
