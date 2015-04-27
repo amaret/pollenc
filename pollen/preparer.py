@@ -2,6 +2,7 @@
 ''' Pollen Cloud Compiler Client '''
 
 import os
+import sys
 import shutil
 import hashlib
 import time
@@ -136,6 +137,8 @@ class Preparer(object):
                            token).hexdigest()
         b64data = base64.b64encode(utils.get_data(self.workzip))
 
+        cmdline = " ".join(sys.argv)
+
         jsonobj = {'compiler': self.args.toolchain,
                    'tid': tid,
                    'aid': self.aid,
@@ -153,7 +156,7 @@ class Preparer(object):
                             'name': 'None'},
                    'content': {'source':  b64data,
                                # todo: unsafe json!
-                               # 'cmdline': self.args.cmdline,
+                               'cmdline': cmdline,
                                'entry':
                                    utils.get_rel_to_temp_dir_name(
                                        self.args.entry),

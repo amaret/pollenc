@@ -191,7 +191,4 @@ def parse():
 
     pargs = root_parser.parse_args()
 
-    cmdline = " ".join(sys.argv)
-    #pargs['cmdline'] = cmdline
-
     return pargs.func(pargs)
