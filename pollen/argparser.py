@@ -55,8 +55,7 @@ def _config_build_args(parser):
     parser.add_argument('-t', '--toolchain', dest='toolchain',
                         action='store', help='toolchain (compiler).',
                         required=False,
-                        choices=['avr-gcc', "arm-none-eabi-gcc",
-                                 "efm32-gcc", "localhost-gcc"])
+                        choices=['arm-gcc', 'avr-gcc', 'msp430-gcc', 'microchip-gcc', 'localhost-gcc'])
 
     parser.add_argument('--trace', dest='trace', action='store_true',
                         help=argparse.SUPPRESS)
